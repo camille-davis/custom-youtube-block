@@ -77,29 +77,6 @@ class Fullsize_YouTube_Embeds {
 	}
 
 	/**
-	 * Enqueue editor assets
-	 */
-	public function enqueue_editor_assets() {
-		$asset_path = plugin_dir_path( __FILE__ ) . 'build/index.asset.php';
-
-		if ( ! file_exists( $asset_path ) ) {
-			return;
-		}
-
-		$asset_file = include $asset_path;
-		$dependencies = isset( $asset_file['dependencies'] ) ? $asset_file['dependencies'] : array();
-		$version      = isset( $asset_file['version'] ) ? $asset_file['version'] : self::VERSION;
-
-		wp_enqueue_script(
-			'fullsize-youtube-embeds-editor',
-			plugins_url( 'build/index.js', __FILE__ ),
-			$dependencies,
-			$version,
-			true
-		);
-	}
-
-	/**
 	 * Filter embed block output to add fullsize class
 	 *
 	 * @param string $block_content The block content.
@@ -145,6 +122,19 @@ class Fullsize_YouTube_Embeds {
 	}
 
 	/**
+	 * Enqueue editor assets
+	 */
+	public function enqueue_editor_assets() {
+		wp_enqueue_script(
+			'fullsize-youtube-embeds-editor',
+			plugins_url( 'assets/editor.js', __FILE__ ),
+			array( 'wp-blocks', 'wp-element', 'wp-editor', 'wp-components', 'wp-i18n' ),
+			self::VERSION,
+			true
+		);
+	}
+
+	/**
 	 * Enqueue frontend assets
 	 */
 	public function enqueue_frontend_assets() {
@@ -168,4 +158,3 @@ class Fullsize_YouTube_Embeds {
 }
 
 new Fullsize_YouTube_Embeds();
-
