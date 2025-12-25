@@ -18,13 +18,6 @@
 	var proxyUrl = settings.restUrl || '/wp-json/oembed/1.0/proxy';
 	var nonce = settings.nonce || '';
 
-	/**
-	 * Check if embed block has fullsize enabled
-	 */
-	function hasFullsizeEnabled(embedBlock) {
-		return embedBlock.classList.contains('has-fullsize-youtube') ||
-		       embedBlock.getAttribute('data-fullsize') === 'true';
-	}
 
 	/**
 	 * Extract YouTube video ID
@@ -96,13 +89,12 @@
 		var newIframe = temp.querySelector('iframe');
 		if (!newIframe) return;
 
-		var wrapper = embedBlock.querySelector('.wp-block-embed__wrapper') ||
-		              (function() {
-		                  var w = document.createElement('div');
-		                  w.className = 'wp-block-embed__wrapper';
-		                  embedBlock.appendChild(w);
-		                  return w;
-		              })();
+		var wrapper = embedBlock.querySelector('.wp-block-embed__wrapper');
+		if (!wrapper) {
+			wrapper = document.createElement('div');
+			wrapper.className = 'wp-block-embed__wrapper';
+			embedBlock.appendChild(wrapper);
+		}
 
 		wrapper.innerHTML = '';
 		wrapper.appendChild(newIframe);
@@ -113,8 +105,6 @@
 	 * Process single embed block
 	 */
 	function processEmbed(embedBlock) {
-		// Only process YouTube embeds with fullsize enabled
-		if (!hasFullsizeEnabled(embedBlock)) return;
 		if (embedBlock.hasAttribute('data-embed-processed') ||
 		    embedBlock.hasAttribute('data-embed-processing')) return;
 
@@ -155,7 +145,7 @@
 	 * Process all embeds
 	 */
 	function processAll() {
-		document.querySelectorAll('.wp-block-embed-youtube.has-fullsize-youtube:not([data-embed-processed]):not([data-embed-processing])')
+		document.querySelectorAll('.has-fullsize-youtube:not([data-embed-processed]):not([data-embed-processing])')
 			.forEach(processEmbed);
 	}
 
@@ -166,7 +156,7 @@
 	function handleResize() {
 		clearTimeout(resizeTimer);
 		resizeTimer = setTimeout(function() {
-			document.querySelectorAll('.wp-block-embed-youtube.has-fullsize-youtube[data-embed-processed]')
+			document.querySelectorAll('.has-fullsize-youtube[data-embed-processed]')
 				.forEach(function(el) { el.removeAttribute('data-embed-processed'); });
 			processAll();
 		}, DEBOUNCE_DELAY);

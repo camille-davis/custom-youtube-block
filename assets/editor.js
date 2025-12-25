@@ -39,7 +39,7 @@
 				return el(BlockEdit, props);
 			}
 
-			var fullsize = attributes.fullsize || false;
+			var fullsize = !!attributes.fullsize;
 
 			return el(
 				wp.element.Fragment,

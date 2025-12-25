@@ -34,21 +34,9 @@ class Fullsize_YouTube_Embeds {
 	 * Initialize plugin
 	 */
 	public function init() {
-		// Only load if block editor is available
-		if ( ! function_exists( 'register_block_type' ) ) {
-			return;
-		}
-
-		// Enqueue editor assets
 		add_action( 'enqueue_block_editor_assets', array( $this, 'enqueue_editor_assets' ) );
-
-		// Enqueue frontend assets
 		add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_frontend_assets' ) );
-
-		// Filter embed block attributes
 		add_filter( 'block_type_metadata_settings', array( $this, 'add_fullsize_attribute' ), 10, 2 );
-
-		// Filter embed block output to add class
 		add_filter( 'render_block_core/embed', array( $this, 'render_embed_block' ), 10, 2 );
 	}
 
@@ -89,31 +77,18 @@ class Fullsize_YouTube_Embeds {
 			return $block_content;
 		}
 
-		// Check if it's a YouTube embed
-		$is_youtube = false;
-		if ( ! empty( $block['attrs']['providerNameSlug'] ) && 'youtube' === $block['attrs']['providerNameSlug'] ) {
-			$is_youtube = true;
-		} elseif ( ! empty( $block['attrs']['url'] ) ) {
-			$url = $block['attrs']['url'];
-			$is_youtube = ( false !== strpos( $url, 'youtube.com' ) || false !== strpos( $url, 'youtu.be' ) );
-		}
+		// Verify it's a YouTube embed (safety check)
+		$is_youtube = ( ! empty( $block['attrs']['providerNameSlug'] ) && 'youtube' === $block['attrs']['providerNameSlug'] ) ||
+		              ( ! empty( $block['attrs']['url'] ) && ( false !== strpos( $block['attrs']['url'], 'youtube.com' ) || false !== strpos( $block['attrs']['url'], 'youtu.be' ) ) );
 
 		if ( ! $is_youtube ) {
 			return $block_content;
 		}
 
-		// Add class to the figure element
+		// Add class and data attribute to the figure element
 		$block_content = preg_replace(
-			'/(<figure[^>]*class="[^"]*wp-block-embed[^"]*)/',
-			'$1 has-fullsize-youtube',
-			$block_content,
-			1
-		);
-
-		// Add data attribute
-		$block_content = preg_replace(
-			'/(<figure[^>]*class="[^"]*has-fullsize-youtube[^"]*")/',
-			'$1 data-fullsize="true"',
+			'/(<figure[^>]*class="[^"]*wp-block-embed[^"]*)(")/',
+			'$1 has-fullsize-youtube$2 data-fullsize="true"',
 			$block_content,
 			1
 		);
