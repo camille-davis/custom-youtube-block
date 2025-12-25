@@ -26,6 +26,11 @@ class Fullsize_YouTube_Embeds {
 	/**
 	 * Flag to track if fullsize YouTube embed was found during rendering.
 	 *
+	 * Set to true when a YouTube embed with fullsize enabled is rendered.
+	 * Used by the fallback enqueue mechanism (wp_print_scripts hook) to detect
+	 * embeds in widgets, reusable blocks, or other contexts not covered by
+	 * the early detection method.
+	 *
 	 * @var bool
 	 */
 	private static $found_fullsize_youtube = false;
@@ -41,12 +46,22 @@ class Fullsize_YouTube_Embeds {
 	 * Initialize plugin
 	 */
 	public function init() {
-		add_action( 'enqueue_block_editor_assets', array( $this, 'enqueue_editor_assets' ) );
-		add_action( 'wp_enqueue_scripts', array( $this, 'maybe_enqueue_frontend_assets' ) );
-		add_action( 'wp_print_scripts', array( $this, 'maybe_enqueue_frontend_assets_fallback' ) );
+
+		// Block registration and rendering
 		add_filter( 'block_type_metadata_settings', array( $this, 'add_fullsize_attribute' ), 10, 2 );
 		add_filter( 'render_block_core/embed', array( $this, 'render_embed_block' ), 10, 2 );
+
+		// Editor assets
+		add_action( 'enqueue_block_editor_assets', array( $this, 'enqueue_editor_assets' ) );
+
+		// Frontend assets - two-stage detection
+		add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_frontend_assets_early' ) );
+		add_action( 'wp_print_scripts', array( $this, 'enqueue_frontend_assets_late' ) );
 	}
+
+	// ============================================================================
+	// Block Registration & Rendering
+	// ============================================================================
 
 	/**
 	 * Add fullsize attribute to YouTube embed blocks
@@ -71,6 +86,8 @@ class Fullsize_YouTube_Embeds {
 	/**
 	 * Filter embed block output to add fullsize class
 	 *
+	 * Also sets flag for late-stage script enqueuing if needed.
+	 *
 	 * @param string $block_content The block content.
 	 * @param array  $block         The block data.
 	 * @return string Modified block content.
@@ -81,11 +98,10 @@ class Fullsize_YouTube_Embeds {
 			return $block_content;
 		}
 
-		// Set flag for fallback enqueue
+		// Set flag for late-stage enqueue (handles widgets, reusable blocks, etc.)
 		self::$found_fullsize_youtube = true;
 
 		// Add class and data attribute to the figure element
-		// Using preg_replace with proper escaping for safety
 		$block_content = preg_replace(
 			'/(<figure[^>]*class="[^"]*wp-block-embed[^"]*)(")/',
 			'$1 has-fullsize-youtube$2 data-fullsize="true"',
@@ -95,6 +111,10 @@ class Fullsize_YouTube_Embeds {
 
 		return $block_content;
 	}
+
+	// ============================================================================
+	// Editor Assets
+	// ============================================================================
 
 	/**
 	 * Enqueue editor assets
@@ -109,24 +129,79 @@ class Fullsize_YouTube_Embeds {
 		);
 	}
 
+	// ============================================================================
+	// Frontend Assets
+	// ============================================================================
+
 	/**
-	 * Conditionally enqueue frontend assets only if needed
+	 * Early detection: Check post content and enqueue if found
 	 *
-	 * Runs during wp_enqueue_scripts hook for early detection.
+	 * Runs during wp_enqueue_scripts hook (before blocks render).
+	 * Checks the main post content for YouTube embeds with fullsize enabled.
+	 * This catches most cases efficiently.
 	 */
-	public function maybe_enqueue_frontend_assets() {
-		if ( ! $this->has_fullsize_youtube_embed() ) {
-			return;
+	public function enqueue_frontend_assets_early() {
+		if ( $this->has_fullsize_youtube_in_post() ) {
+			$this->enqueue_frontend_script();
 		}
-		$this->enqueue_frontend_script();
 	}
 
 	/**
-	 * Check if current page has YouTube embed with fullsize enabled
+	 * Late detection: Check flag set during block rendering
+	 *
+	 * Runs during wp_print_scripts hook (after blocks render, before scripts output).
+	 * Uses the flag set by render_embed_block() to catch embeds in:
+	 * - Widgets
+	 * - Reusable blocks (synced patterns)
+	 * - Theme templates
+	 * - Any other context not in main post content
+	 */
+	public function enqueue_frontend_assets_late() {
+		if ( self::$found_fullsize_youtube ) {
+			$this->enqueue_frontend_script();
+		}
+	}
+
+	/**
+	 * Enqueue frontend script and localize settings
+	 *
+	 * Shared method used by both early and late detection.
+	 * Includes safety check to prevent duplicate enqueues.
+	 */
+	private function enqueue_frontend_script() {
+		// Prevent duplicate enqueues
+		if ( wp_script_is( 'fullsize-youtube-embeds-frontend', 'enqueued' ) ) {
+			return;
+		}
+
+		wp_enqueue_script(
+			'fullsize-youtube-embeds-frontend',
+			plugins_url( 'assets/frontend.js', __FILE__ ),
+			array(),
+			self::VERSION,
+			true
+		);
+
+		wp_localize_script(
+			'fullsize-youtube-embeds-frontend',
+			'fullsizeYouTubeSettings',
+			array(
+				'restUrl' => rest_url( 'oembed/1.0/proxy' ),
+				'nonce'   => wp_create_nonce( 'wp_rest' ),
+			)
+		);
+	}
+
+	// ============================================================================
+	// Helper Methods
+	// ============================================================================
+
+	/**
+	 * Check if current page has YouTube embed with fullsize enabled in post content
 	 *
 	 * @return bool True if found, false otherwise.
 	 */
-	private function has_fullsize_youtube_embed() {
+	private function has_fullsize_youtube_in_post() {
 		global $post;
 		if ( ! $post || ! has_block( 'core/embed', $post ) ) {
 			return false;
@@ -170,44 +245,6 @@ class Fullsize_YouTube_Embeds {
 
 		return ( ! empty( $attrs['providerNameSlug'] ) && 'youtube' === $attrs['providerNameSlug'] ) ||
 		       ( ! empty( $attrs['url'] ) && is_string( $attrs['url'] ) && ( false !== strpos( $attrs['url'], 'youtube.com' ) || false !== strpos( $attrs['url'], 'youtu.be' ) ) );
-	}
-
-	/**
-	 * Fallback: Enqueue frontend assets if found during block rendering
-	 *
-	 * Runs during wp_print_scripts hook (after blocks render, before scripts output).
-	 * Handles edge cases like widgets, reusable blocks, theme templates, etc.
-	 */
-	public function maybe_enqueue_frontend_assets_fallback() {
-		if ( self::$found_fullsize_youtube ) {
-			$this->enqueue_frontend_script();
-		}
-	}
-
-	/**
-	 * Enqueue frontend script and localize settings
-	 */
-	private function enqueue_frontend_script() {
-		if ( wp_script_is( 'fullsize-youtube-embeds-frontend', 'enqueued' ) ) {
-			return;
-		}
-
-		wp_enqueue_script(
-			'fullsize-youtube-embeds-frontend',
-			plugins_url( 'assets/frontend.js', __FILE__ ),
-			array(),
-			self::VERSION,
-			true
-		);
-
-		wp_localize_script(
-			'fullsize-youtube-embeds-frontend',
-			'fullsizeYouTubeSettings',
-			array(
-				'restUrl' => rest_url( 'oembed/1.0/proxy' ),
-				'nonce'   => wp_create_nonce( 'wp_rest' ),
-			)
-		);
 	}
 }
 
