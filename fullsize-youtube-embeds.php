@@ -129,7 +129,7 @@ class Fullsize_YouTube_Embeds {
 	 */
 	private function has_fullsize_youtube_embed() {
 		global $post;
-		if ( ! $post || empty( $post->post_content ) ) {
+		if ( ! $post || ! has_block( 'core/embed', $post ) ) {
 			return false;
 		}
 
