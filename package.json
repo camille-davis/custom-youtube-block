@@ -1,0 +1,16 @@
+{
+	"name": "fullsize-youtube-embeds",
+	"version": "1.0.0",
+	"description": "Adds fullsize toggle to YouTube embed blocks",
+	"author": "Your Name",
+	"license": "GPL-2.0-or-later",
+	"scripts": {
+		"build": "wp-scripts build",
+		"start": "wp-scripts start",
+		"packages-update": "wp-scripts packages-update"
+	},
+	"devDependencies": {
+		"@wordpress/scripts": "^26.0.0"
+	}
+}
+
