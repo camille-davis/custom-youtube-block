@@ -18,51 +18,8 @@
 	var proxyUrl = settings.restUrl || '/wp-json/oembed/1.0/proxy';
 	var nonce = settings.nonce || '';
 
-	function getEmbedUrl(iframe) {
-		if (!iframe || !iframe.src) return null;
-		var match = iframe.src.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\n?#]+)/);
-		return match ? 'https://www.youtube.com/watch?v=' + match[1] : null;
-	}
-
 	function getWidth(element) {
 		return element ? Math.floor(element.getBoundingClientRect().width) : 0;
-	}
-
-	function needsUpdate(containerWidth, iframeWidth) {
-		if (!containerWidth || !iframeWidth || containerWidth < MIN_WIDTH) return false;
-		var diff = Math.abs(containerWidth - iframeWidth);
-		return diff > WIDTH_THRESHOLD || diff / containerWidth * 100 > PERCENTAGE_THRESHOLD;
-	}
-
-	function fetchOEmbed(url, width) {
-		var params = 'url=' + encodeURIComponent(url) + '&maxwidth=' + width + '&maxheight=' + Math.ceil(width * ASPECT_RATIO);
-		if (nonce) params += '&_wpnonce=' + encodeURIComponent(nonce);
-
-		return fetch(proxyUrl + '?' + params)
-			.then(function(res) { return res.ok ? res.json() : Promise.reject(new Error('Request failed')); })
-			.then(function(data) { return data.html || null; })
-			.catch(function(err) { console.warn('oEmbed fetch failed:', err); return null; });
-	}
-
-	function replaceIframe(embedBlock, newHtml) {
-		if (!newHtml) return;
-
-		var temp = document.createElement('div');
-		temp.innerHTML = newHtml;
-		var newIframe = temp.querySelector('iframe');
-		if (!newIframe) return;
-
-		var wrapper = embedBlock.querySelector('.wp-block-embed__wrapper');
-		if (!wrapper) {
-			wrapper = document.createElement('div');
-			wrapper.className = 'wp-block-embed__wrapper';
-			embedBlock.appendChild(wrapper);
-		}
-
-		wrapper.innerHTML = '';
-		wrapper.appendChild(newIframe);
-		var aspectRatio = newIframe.getAttribute('data-aspect-ratio') || '16:9';
-		embedBlock.classList.add('wp-embed-responsive', 'wp-has-aspect-ratio', 'wp-embed-aspect-' + aspectRatio.replace(':', '-'));
 	}
 
 	function processEmbed(embedBlock) {
@@ -74,18 +31,58 @@
 			return;
 		}
 
-		var url = getEmbedUrl(iframe);
+		// Get embed URL
+		var url = null;
+		if (iframe.src) {
+			var match = iframe.src.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\n?#]+)/);
+			if (match) url = 'https://www.youtube.com/watch?v=' + match[1];
+		}
+
 		var containerWidth = getWidth(embedBlock.querySelector('.wp-block-embed__wrapper') || embedBlock);
 		var iframeWidth = parseInt(iframe.getAttribute('width'), 10) || getWidth(iframe);
 
-		if (!url || !needsUpdate(containerWidth, iframeWidth)) {
+		// Check if update needed
+		var needsUpdate = false;
+		if (containerWidth && iframeWidth && containerWidth >= MIN_WIDTH) {
+			var diff = Math.abs(containerWidth - iframeWidth);
+			needsUpdate = diff > WIDTH_THRESHOLD || diff / containerWidth * 100 > PERCENTAGE_THRESHOLD;
+		}
+
+		if (!url || !needsUpdate) {
 			embedBlock.setAttribute('data-embed-processed', 'true');
 			return;
 		}
 
 		embedBlock.setAttribute('data-embed-processing', 'true');
-		fetchOEmbed(url, containerWidth)
-			.then(function(html) { if (html) replaceIframe(embedBlock, html); })
+
+		// Fetch oEmbed
+		var params = 'url=' + encodeURIComponent(url) + '&maxwidth=' + containerWidth + '&maxheight=' + Math.ceil(containerWidth * ASPECT_RATIO);
+		if (nonce) params += '&_wpnonce=' + encodeURIComponent(nonce);
+
+		fetch(proxyUrl + '?' + params)
+			.then(function(res) { return res.ok ? res.json() : Promise.reject(new Error('Request failed')); })
+			.then(function(data) { return data.html || null; })
+			.catch(function(err) { console.warn('oEmbed fetch failed:', err); return null; })
+			.then(function(html) {
+				// Replace iframe
+				if (html) {
+					var temp = document.createElement('div');
+					temp.innerHTML = html;
+					var newIframe = temp.querySelector('iframe');
+					if (newIframe) {
+						var wrapper = embedBlock.querySelector('.wp-block-embed__wrapper');
+						if (!wrapper) {
+							wrapper = document.createElement('div');
+							wrapper.className = 'wp-block-embed__wrapper';
+							embedBlock.appendChild(wrapper);
+						}
+						wrapper.innerHTML = '';
+						wrapper.appendChild(newIframe);
+						var aspectRatio = newIframe.getAttribute('data-aspect-ratio') || '16:9';
+						embedBlock.classList.add('wp-embed-responsive', 'wp-has-aspect-ratio', 'wp-embed-aspect-' + aspectRatio.replace(':', '-'));
+					}
+				}
+			})
 			.then(cleanup, cleanup);
 
 		function cleanup() {
