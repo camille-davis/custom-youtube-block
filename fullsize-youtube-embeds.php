@@ -59,7 +59,7 @@ class Fullsize_YouTube_Embeds {
 	// ============================================================================
 
 	/**
-	 * Add fullsize attribute to YouTube embed blocks
+	 * Add fullsize attribute to Embed blocks.
 	 *
 	 * @param array $settings Block settings.
 	 * @param array $metadata Block metadata.
