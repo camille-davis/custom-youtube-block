@@ -1,10 +1,10 @@
 <?php
 /**
  * Plugin Name: Fullsize Option for YouTube Embeds
- * Plugin URI: https://github.com/yourusername/fullsize-youtube-embeds
- * Description: Adds a fullsize toggle option to YouTube embed blocks that makes them dynamically resize to match their container width, just like in the editor.
+ * Plugin URI: https://github.com/camilledavis/fullsize-youtube-embeds
+ * Description: Adds a fullsize toggle option to YouTube embed blocks.
  * Version: 1.0.0
- * Author: Your Name
+ * Author: Camille Davis
  * License: GPL-2.0-or-later
  * Text Domain: fullsize-youtube-embeds
  */
