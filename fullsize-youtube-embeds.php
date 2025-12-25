@@ -81,7 +81,7 @@ class Fullsize_YouTube_Embeds {
 			return $block_content;
 		}
 
-		if ( ! $this->is_youtube_embed( $block['attrs'] ) ) {
+		if ( ! isset( $block['attrs'] ) || ! $this->is_youtube_embed( $block['attrs'] ) ) {
 			return $block_content;
 		}
 
@@ -89,6 +89,7 @@ class Fullsize_YouTube_Embeds {
 		self::$found_fullsize_youtube = true;
 
 		// Add class and data attribute to the figure element
+		// Using preg_replace with proper escaping for safety
 		$block_content = preg_replace(
 			'/(<figure[^>]*class="[^"]*wp-block-embed[^"]*)(")/',
 			'$1 has-fullsize-youtube$2 data-fullsize="true"',
@@ -114,6 +115,8 @@ class Fullsize_YouTube_Embeds {
 
 	/**
 	 * Conditionally enqueue frontend assets only if needed
+	 *
+	 * Runs during wp_enqueue_scripts hook for early detection.
 	 */
 	public function maybe_enqueue_frontend_assets() {
 		if ( ! $this->has_fullsize_youtube_embed() ) {
@@ -145,7 +148,9 @@ class Fullsize_YouTube_Embeds {
 	 */
 	private function check_blocks_for_fullsize_youtube( $blocks ) {
 		foreach ( $blocks as $block ) {
-			if ( 'core/embed' === $block['blockName'] && ! empty( $block['attrs']['fullsize'] ) && $this->is_youtube_embed( $block['attrs'] ) ) {
+			if ( isset( $block['blockName'] ) && 'core/embed' === $block['blockName']
+				&& isset( $block['attrs']['fullsize'] ) && ! empty( $block['attrs']['fullsize'] )
+				&& $this->is_youtube_embed( $block['attrs'] ) ) {
 				return true;
 			}
 
@@ -163,13 +168,19 @@ class Fullsize_YouTube_Embeds {
 	 * @return bool True if YouTube, false otherwise.
 	 */
 	private function is_youtube_embed( $attrs ) {
+		if ( ! is_array( $attrs ) ) {
+			return false;
+		}
+
 		return ( ! empty( $attrs['providerNameSlug'] ) && 'youtube' === $attrs['providerNameSlug'] ) ||
-		       ( ! empty( $attrs['url'] ) && ( false !== strpos( $attrs['url'], 'youtube.com' ) || false !== strpos( $attrs['url'], 'youtu.be' ) ) );
+		       ( ! empty( $attrs['url'] ) && is_string( $attrs['url'] ) && ( false !== strpos( $attrs['url'], 'youtube.com' ) || false !== strpos( $attrs['url'], 'youtu.be' ) ) );
 	}
 
 	/**
 	 * Fallback: Enqueue frontend assets if found during block rendering
-	 * Handles edge cases like widgets, reusable blocks, etc.
+	 *
+	 * Runs during wp_print_scripts hook (after blocks render, before scripts output).
+	 * Handles edge cases like widgets, reusable blocks, theme templates, etc.
 	 */
 	public function maybe_enqueue_frontend_assets_fallback() {
 		if ( self::$found_fullsize_youtube ) {
