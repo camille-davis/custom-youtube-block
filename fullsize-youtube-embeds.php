@@ -52,10 +52,6 @@ class Fullsize_YouTube_Embeds {
 			return $settings;
 		}
 
-		if ( ! isset( $settings['attributes'] ) ) {
-			$settings['attributes'] = array();
-		}
-
 		$settings['attributes']['fullsize'] = array(
 			'type'    => 'boolean',
 			'default' => false,
@@ -77,11 +73,9 @@ class Fullsize_YouTube_Embeds {
 			return $block_content;
 		}
 
-		// Verify it's a YouTube embed (safety check)
-		$is_youtube = ( ! empty( $block['attrs']['providerNameSlug'] ) && 'youtube' === $block['attrs']['providerNameSlug'] ) ||
-		              ( ! empty( $block['attrs']['url'] ) && ( false !== strpos( $block['attrs']['url'], 'youtube.com' ) || false !== strpos( $block['attrs']['url'], 'youtu.be' ) ) );
-
-		if ( ! $is_youtube ) {
+		// Verify it's a YouTube embed
+		if ( ( empty( $block['attrs']['providerNameSlug'] ) || 'youtube' !== $block['attrs']['providerNameSlug'] ) &&
+		     ( empty( $block['attrs']['url'] ) || ( false === strpos( $block['attrs']['url'], 'youtube.com' ) && false === strpos( $block['attrs']['url'], 'youtu.be' ) ) ) ) {
 			return $block_content;
 		}
 

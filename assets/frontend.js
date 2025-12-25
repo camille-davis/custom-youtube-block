@@ -18,7 +18,6 @@
 	var proxyUrl = settings.restUrl || '/wp-json/oembed/1.0/proxy';
 	var nonce = settings.nonce || '';
 
-
 	/**
 	 * Extract YouTube video ID
 	 */
@@ -71,11 +70,7 @@
 	 * Update embed classes
 	 */
 	function updateClasses(embedBlock, aspectRatio) {
-		embedBlock.classList.add('wp-embed-responsive', 'wp-has-aspect-ratio');
-		var aspectClass = 'wp-embed-aspect-' + (aspectRatio || '16:9').replace(':', '-');
-		if (!embedBlock.classList.contains(aspectClass)) {
-			embedBlock.classList.add(aspectClass);
-		}
+		embedBlock.classList.add('wp-embed-responsive', 'wp-has-aspect-ratio', 'wp-embed-aspect-' + (aspectRatio || '16:9').replace(':', '-'));
 	}
 
 	/**
@@ -130,15 +125,13 @@
 
 		embedBlock.setAttribute('data-embed-processing', 'true');
 		fetchOEmbed(url, containerWidth)
-			.then(function(html) {
-				if (html) replaceIframe(embedBlock, html);
-				embedBlock.setAttribute('data-embed-processed', 'true');
-				embedBlock.removeAttribute('data-embed-processing');
-			})
-			.catch(function() {
-				embedBlock.setAttribute('data-embed-processed', 'true');
-				embedBlock.removeAttribute('data-embed-processing');
-			});
+			.then(function(html) { if (html) replaceIframe(embedBlock, html); })
+			.then(cleanup, cleanup);
+
+		function cleanup() {
+			embedBlock.setAttribute('data-embed-processed', 'true');
+			embedBlock.removeAttribute('data-embed-processing');
+		}
 	}
 
 	/**

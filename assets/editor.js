@@ -14,90 +14,41 @@
 	var ToggleControl = wp.components.ToggleControl;
 	var addFilter = wp.hooks.addFilter;
 
-	// Register the fullsize attribute for embed blocks
-	addFilter(
-		'blocks.registerBlockType',
-		'fullsize-youtube-embeds/add-attribute',
-		function(settings, name) {
-			if (name !== 'core/embed') {
-				return settings;
-			}
-
-			if (!settings.attributes) {
-				settings.attributes = {};
-			}
-
-			settings.attributes.fullsize = {
-				type: 'boolean',
-				default: false
-			};
-
-			return settings;
+	// Register the fullsize attribute
+	addFilter('blocks.registerBlockType', 'fullsize-youtube-embeds/add-attribute', function(settings, name) {
+		if (name === 'core/embed') {
+			settings.attributes = settings.attributes || {};
+			settings.attributes.fullsize = { type: 'boolean', default: false };
 		}
-	);
+		return settings;
+	});
 
-	/**
-	 * Add fullsize toggle to YouTube embed blocks
-	 */
-	function addFullsizeToggle(BlockEdit) {
+	// Add fullsize toggle to YouTube embed blocks
+	addFilter('editor.BlockEdit', 'fullsize-youtube-embeds/add-toggle', function(BlockEdit) {
 		return function(props) {
-			var attributes = props.attributes;
-			var setAttributes = props.setAttributes;
-			var name = props.name;
+			if (props.name !== 'core/embed') return el(BlockEdit, props);
 
-			// Only apply to embed blocks
-			if (name !== 'core/embed') {
-				return el(BlockEdit, props);
-			}
+			var attrs = props.attributes;
+			var isYouTube = attrs.providerNameSlug === 'youtube' ||
+			                (attrs.url && (attrs.url.indexOf('youtube.com') !== -1 || attrs.url.indexOf('youtu.be') !== -1));
 
-			// Only show for YouTube embeds
-			var isYouTube = attributes.providerNameSlug === 'youtube' ||
-			                (attributes.url && (
-			                    attributes.url.indexOf('youtube.com') !== -1 ||
-			                    attributes.url.indexOf('youtu.be') !== -1
-			                ));
+			if (!isYouTube) return el(BlockEdit, props);
 
-			if (!isYouTube) {
-				return el(BlockEdit, props);
-			}
-
-			var fullsize = !!attributes.fullsize;
-
-			return el(
-				wp.element.Fragment,
-				{},
+			return el(wp.element.Fragment, {},
 				el(BlockEdit, props),
-				el(
-					InspectorControls,
-					{},
-					el(
-						PanelBody,
-						{
-							title: __('YouTube Settings', 'fullsize-youtube-embeds')
-						},
-						el(
-							ToggleControl,
-							{
-								label: __('Fullsize Mode', 'fullsize-youtube-embeds'),
-								help: __('Enable to make this embed dynamically resize to match its container width, just like in the editor.', 'fullsize-youtube-embeds'),
-								checked: fullsize,
-								onChange: function(value) {
-									setAttributes({ fullsize: value });
-								}
-							}
-						)
+				el(InspectorControls, {},
+					el(PanelBody, { title: __('YouTube Settings', 'fullsize-youtube-embeds') },
+						el(ToggleControl, {
+							label: __('Fullsize Mode', 'fullsize-youtube-embeds'),
+							help: __('Enable to make this embed dynamically resize to match its container width, just like in the editor.', 'fullsize-youtube-embeds'),
+							checked: !!attrs.fullsize,
+							onChange: function(value) { props.setAttributes({ fullsize: value }); }
+						})
 					)
 				)
 			);
 		};
-	}
-
-	// Register the filter
-	addFilter(
-		'editor.BlockEdit',
-		'fullsize-youtube-embeds/add-toggle',
-		addFullsizeToggle
-	);
+	});
 
 })();
 
