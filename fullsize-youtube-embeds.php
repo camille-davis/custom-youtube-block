@@ -93,6 +93,7 @@ class Fullsize_YouTube_Embeds {
 	 * @return string Modified block content.
 	 */
 	public function render_embed_block( $block_content, $block ) {
+
 		// Only process YouTube embeds with fullsize enabled
 		if ( ! isset( $block['attrs'] ) || empty( $block['attrs']['fullsize'] ) || ! $this->is_youtube_embed( $block['attrs'] ) ) {
 			return $block_content;
@@ -169,6 +170,7 @@ class Fullsize_YouTube_Embeds {
 	 * Includes safety check to prevent duplicate enqueues.
 	 */
 	private function enqueue_frontend_script() {
+
 		// Prevent duplicate enqueues
 		if ( wp_script_is( 'fullsize-youtube-embeds-frontend', 'enqueued' ) ) {
 			return;
