@@ -24,6 +24,13 @@ class Fullsize_YouTube_Embeds {
 	const VERSION = '1.0.0';
 
 	/**
+	 * Flag to track if fullsize YouTube embed was found during rendering
+	 *
+	 * @var bool
+	 */
+	private static $found_fullsize_youtube = false;
+
+	/**
 	 * Constructor
 	 */
 	public function __construct() {
@@ -35,7 +42,8 @@ class Fullsize_YouTube_Embeds {
 	 */
 	public function init() {
 		add_action( 'enqueue_block_editor_assets', array( $this, 'enqueue_editor_assets' ) );
-		add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_frontend_assets' ) );
+		add_action( 'wp_enqueue_scripts', array( $this, 'maybe_enqueue_frontend_assets' ) );
+		add_action( 'wp_print_scripts', array( $this, 'maybe_enqueue_frontend_assets_fallback' ) );
 		add_filter( 'block_type_metadata_settings', array( $this, 'add_fullsize_attribute' ), 10, 2 );
 		add_filter( 'render_block_core/embed', array( $this, 'render_embed_block' ), 10, 2 );
 	}
@@ -74,10 +82,14 @@ class Fullsize_YouTube_Embeds {
 		}
 
 		// Verify it's a YouTube embed
-		if ( ( empty( $block['attrs']['providerNameSlug'] ) || 'youtube' !== $block['attrs']['providerNameSlug'] ) &&
-		     ( empty( $block['attrs']['url'] ) || ( false === strpos( $block['attrs']['url'], 'youtube.com' ) && false === strpos( $block['attrs']['url'], 'youtu.be' ) ) ) ) {
+		$is_youtube = ( ! empty( $block['attrs']['providerNameSlug'] ) && 'youtube' === $block['attrs']['providerNameSlug'] ) ||
+		              ( ! empty( $block['attrs']['url'] ) && ( false !== strpos( $block['attrs']['url'], 'youtube.com' ) || false !== strpos( $block['attrs']['url'], 'youtu.be' ) ) );
+		if ( ! $is_youtube ) {
 			return $block_content;
 		}
+
+		// Set flag for fallback enqueue
+		self::$found_fullsize_youtube = true;
 
 		// Add class and data attribute to the figure element
 		$block_content = preg_replace(
@@ -104,9 +116,99 @@ class Fullsize_YouTube_Embeds {
 	}
 
 	/**
-	 * Enqueue frontend assets
+	 * Conditionally enqueue frontend assets only if needed
 	 */
-	public function enqueue_frontend_assets() {
+	public function maybe_enqueue_frontend_assets() {
+		// Only enqueue if there's a YouTube embed with fullsize enabled
+		if ( ! $this->has_fullsize_youtube_embed() ) {
+			return;
+		}
+
+		wp_enqueue_script(
+			'fullsize-youtube-embeds-frontend',
+			plugins_url( 'assets/frontend.js', __FILE__ ),
+			array(),
+			self::VERSION,
+			true
+		);
+
+		wp_localize_script(
+			'fullsize-youtube-embeds-frontend',
+			'fullsizeYouTubeSettings',
+			array(
+				'restUrl' => rest_url( 'oembed/1.0/proxy' ),
+				'nonce'   => wp_create_nonce( 'wp_rest' ),
+			)
+		);
+	}
+
+	/**
+	 * Check if current page has YouTube embed with fullsize enabled
+	 *
+	 * @return bool True if found, false otherwise.
+	 */
+	private function has_fullsize_youtube_embed() {
+		// Check if we're in a post/page context
+		if ( ! is_singular() && ! is_home() && ! is_front_page() && ! is_archive() ) {
+			return false;
+		}
+
+		global $post;
+		if ( ! $post || empty( $post->post_content ) ) {
+			return false;
+		}
+
+		// Parse blocks from post content
+		$blocks = parse_blocks( $post->post_content );
+		if ( empty( $blocks ) ) {
+			return false;
+		}
+
+		// Recursively check blocks for YouTube embeds with fullsize enabled
+		return $this->check_blocks_for_fullsize_youtube( $blocks );
+	}
+
+	/**
+	 * Recursively check blocks for YouTube embed with fullsize enabled
+	 *
+	 * @param array $blocks Array of block data.
+	 * @return bool True if found, false otherwise.
+	 */
+	private function check_blocks_for_fullsize_youtube( $blocks ) {
+		foreach ( $blocks as $block ) {
+			// Check if this is an embed block with fullsize enabled
+			if ( 'core/embed' === $block['blockName'] && ! empty( $block['attrs']['fullsize'] ) ) {
+				$is_youtube = ( ! empty( $block['attrs']['providerNameSlug'] ) && 'youtube' === $block['attrs']['providerNameSlug'] ) ||
+				              ( ! empty( $block['attrs']['url'] ) && ( false !== strpos( $block['attrs']['url'], 'youtube.com' ) || false !== strpos( $block['attrs']['url'], 'youtu.be' ) ) );
+
+				if ( $is_youtube ) {
+					return true;
+				}
+			}
+
+			// Recursively check inner blocks
+			if ( ! empty( $block['innerBlocks'] ) && $this->check_blocks_for_fullsize_youtube( $block['innerBlocks'] ) ) {
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	/**
+	 * Fallback: Enqueue frontend assets if found during block rendering
+	 * Handles edge cases like widgets, reusable blocks, etc.
+	 */
+	public function maybe_enqueue_frontend_assets_fallback() {
+		if ( ! self::$found_fullsize_youtube ) {
+			return;
+		}
+
+		// Only enqueue if not already enqueued
+		if ( wp_script_is( 'fullsize-youtube-embeds-frontend', 'enqueued' ) ) {
+			return;
+		}
+
 		wp_enqueue_script(
 			'fullsize-youtube-embeds-frontend',
 			plugins_url( 'assets/frontend.js', __FILE__ ),
