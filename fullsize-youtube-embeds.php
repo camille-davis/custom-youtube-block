@@ -26,11 +26,6 @@ class Fullsize_YouTube_Embeds {
 	/**
 	 * Flag to track if fullsize YouTube embed was found during rendering.
 	 *
-	 * Set to true when a YouTube embed with fullsize enabled is rendered.
-	 * Used by the fallback enqueue mechanism (wp_print_scripts hook) to detect
-	 * embeds in widgets, reusable blocks, or other contexts not covered by
-	 * the early detection method.
-	 *
 	 * @var bool
 	 */
 	private static $found_fullsize_youtube = false;
