@@ -81,10 +81,7 @@ class Fullsize_YouTube_Embeds {
 			return $block_content;
 		}
 
-		// Verify it's a YouTube embed
-		$is_youtube = ( ! empty( $block['attrs']['providerNameSlug'] ) && 'youtube' === $block['attrs']['providerNameSlug'] ) ||
-		              ( ! empty( $block['attrs']['url'] ) && ( false !== strpos( $block['attrs']['url'], 'youtube.com' ) || false !== strpos( $block['attrs']['url'], 'youtu.be' ) ) );
-		if ( ! $is_youtube ) {
+		if ( ! $this->is_youtube_embed( $block['attrs'] ) ) {
 			return $block_content;
 		}
 
@@ -119,27 +116,10 @@ class Fullsize_YouTube_Embeds {
 	 * Conditionally enqueue frontend assets only if needed
 	 */
 	public function maybe_enqueue_frontend_assets() {
-		// Only enqueue if there's a YouTube embed with fullsize enabled
 		if ( ! $this->has_fullsize_youtube_embed() ) {
 			return;
 		}
-
-		wp_enqueue_script(
-			'fullsize-youtube-embeds-frontend',
-			plugins_url( 'assets/frontend.js', __FILE__ ),
-			array(),
-			self::VERSION,
-			true
-		);
-
-		wp_localize_script(
-			'fullsize-youtube-embeds-frontend',
-			'fullsizeYouTubeSettings',
-			array(
-				'restUrl' => rest_url( 'oembed/1.0/proxy' ),
-				'nonce'   => wp_create_nonce( 'wp_rest' ),
-			)
-		);
+		$this->enqueue_frontend_script();
 	}
 
 	/**
@@ -148,24 +128,13 @@ class Fullsize_YouTube_Embeds {
 	 * @return bool True if found, false otherwise.
 	 */
 	private function has_fullsize_youtube_embed() {
-		// Check if we're in a post/page context
-		if ( ! is_singular() && ! is_home() && ! is_front_page() && ! is_archive() ) {
-			return false;
-		}
-
 		global $post;
 		if ( ! $post || empty( $post->post_content ) ) {
 			return false;
 		}
 
-		// Parse blocks from post content
 		$blocks = parse_blocks( $post->post_content );
-		if ( empty( $blocks ) ) {
-			return false;
-		}
-
-		// Recursively check blocks for YouTube embeds with fullsize enabled
-		return $this->check_blocks_for_fullsize_youtube( $blocks );
+		return ! empty( $blocks ) && $this->check_blocks_for_fullsize_youtube( $blocks );
 	}
 
 	/**
@@ -176,23 +145,26 @@ class Fullsize_YouTube_Embeds {
 	 */
 	private function check_blocks_for_fullsize_youtube( $blocks ) {
 		foreach ( $blocks as $block ) {
-			// Check if this is an embed block with fullsize enabled
-			if ( 'core/embed' === $block['blockName'] && ! empty( $block['attrs']['fullsize'] ) ) {
-				$is_youtube = ( ! empty( $block['attrs']['providerNameSlug'] ) && 'youtube' === $block['attrs']['providerNameSlug'] ) ||
-				              ( ! empty( $block['attrs']['url'] ) && ( false !== strpos( $block['attrs']['url'], 'youtube.com' ) || false !== strpos( $block['attrs']['url'], 'youtu.be' ) ) );
-
-				if ( $is_youtube ) {
-					return true;
-				}
+			if ( 'core/embed' === $block['blockName'] && ! empty( $block['attrs']['fullsize'] ) && $this->is_youtube_embed( $block['attrs'] ) ) {
+				return true;
 			}
 
-			// Recursively check inner blocks
 			if ( ! empty( $block['innerBlocks'] ) && $this->check_blocks_for_fullsize_youtube( $block['innerBlocks'] ) ) {
 				return true;
 			}
 		}
-
 		return false;
+	}
+
+	/**
+	 * Check if embed attributes indicate a YouTube embed
+	 *
+	 * @param array $attrs Block attributes.
+	 * @return bool True if YouTube, false otherwise.
+	 */
+	private function is_youtube_embed( $attrs ) {
+		return ( ! empty( $attrs['providerNameSlug'] ) && 'youtube' === $attrs['providerNameSlug'] ) ||
+		       ( ! empty( $attrs['url'] ) && ( false !== strpos( $attrs['url'], 'youtube.com' ) || false !== strpos( $attrs['url'], 'youtu.be' ) ) );
 	}
 
 	/**
@@ -200,11 +172,15 @@ class Fullsize_YouTube_Embeds {
 	 * Handles edge cases like widgets, reusable blocks, etc.
 	 */
 	public function maybe_enqueue_frontend_assets_fallback() {
-		if ( ! self::$found_fullsize_youtube ) {
-			return;
+		if ( self::$found_fullsize_youtube ) {
+			$this->enqueue_frontend_script();
 		}
+	}
 
-		// Only enqueue if not already enqueued
+	/**
+	 * Enqueue frontend script and localize settings
+	 */
+	private function enqueue_frontend_script() {
 		if ( wp_script_is( 'fullsize-youtube-embeds-frontend', 'enqueued' ) ) {
 			return;
 		}
