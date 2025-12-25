@@ -103,7 +103,7 @@ class Fullsize_YouTube_Embeds {
 		wp_enqueue_script(
 			'fullsize-youtube-embeds-editor',
 			plugins_url( 'assets/editor.js', __FILE__ ),
-			array( 'wp-blocks', 'wp-element', 'wp-editor', 'wp-components', 'wp-i18n' ),
+			array( 'wp-blocks', 'wp-element', 'wp-block-editor', 'wp-components', 'wp-i18n', 'wp-hooks' ),
 			self::VERSION,
 			true
 		);

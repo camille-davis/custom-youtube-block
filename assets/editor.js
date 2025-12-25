@@ -14,6 +14,28 @@
 	var ToggleControl = wp.components.ToggleControl;
 	var addFilter = wp.hooks.addFilter;
 
+	// Register the fullsize attribute for embed blocks
+	addFilter(
+		'blocks.registerBlockType',
+		'fullsize-youtube-embeds/add-attribute',
+		function(settings, name) {
+			if (name !== 'core/embed') {
+				return settings;
+			}
+
+			if (!settings.attributes) {
+				settings.attributes = {};
+			}
+
+			settings.attributes.fullsize = {
+				type: 'boolean',
+				default: false
+			};
+
+			return settings;
+		}
+	);
+
 	/**
 	 * Add fullsize toggle to YouTube embed blocks
 	 */
