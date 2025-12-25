@@ -24,7 +24,7 @@ class Fullsize_YouTube_Embeds {
 	const VERSION = '1.0.0';
 
 	/**
-	 * Flag to track if fullsize YouTube embed was found during rendering
+	 * Flag to track if fullsize YouTube embed was found during rendering.
 	 *
 	 * @var bool
 	 */
@@ -77,11 +77,7 @@ class Fullsize_YouTube_Embeds {
 	 */
 	public function render_embed_block( $block_content, $block ) {
 		// Only process YouTube embeds with fullsize enabled
-		if ( empty( $block['attrs']['fullsize'] ) ) {
-			return $block_content;
-		}
-
-		if ( ! isset( $block['attrs'] ) || ! $this->is_youtube_embed( $block['attrs'] ) ) {
+		if ( ! isset( $block['attrs'] ) || empty( $block['attrs']['fullsize'] ) || ! $this->is_youtube_embed( $block['attrs'] ) ) {
 			return $block_content;
 		}
 
