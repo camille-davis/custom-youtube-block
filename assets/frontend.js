@@ -18,46 +18,24 @@
 	var proxyUrl = settings.restUrl || '/wp-json/oembed/1.0/proxy';
 	var nonce = settings.nonce || '';
 
-	/**
-	 * Extract YouTube video ID
-	 */
-	function getYouTubeVideoId(url) {
-		if (!url) return null;
-		var match = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\n?#]+)/);
-		return match ? match[1] : null;
-	}
-
-	/**
-	 * Get embed URL from iframe
-	 */
 	function getEmbedUrl(iframe) {
 		if (!iframe || !iframe.src) return null;
-		var videoId = getYouTubeVideoId(iframe.src);
-		return videoId ? 'https://www.youtube.com/watch?v=' + videoId : null;
+		var match = iframe.src.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\n?#]+)/);
+		return match ? 'https://www.youtube.com/watch?v=' + match[1] : null;
 	}
 
-	/**
-	 * Get element width
-	 */
 	function getWidth(element) {
 		return element ? Math.floor(element.getBoundingClientRect().width) : 0;
 	}
 
-	/**
-	 * Check if embed needs update
-	 */
 	function needsUpdate(containerWidth, iframeWidth) {
 		if (!containerWidth || !iframeWidth || containerWidth < MIN_WIDTH) return false;
 		var diff = Math.abs(containerWidth - iframeWidth);
-		return diff > WIDTH_THRESHOLD || (diff / containerWidth * 100) > PERCENTAGE_THRESHOLD;
+		return diff > WIDTH_THRESHOLD || diff / containerWidth * 100 > PERCENTAGE_THRESHOLD;
 	}
 
-	/**
-	 * Fetch oEmbed response
-	 */
 	function fetchOEmbed(url, width) {
-		var height = Math.ceil(width * ASPECT_RATIO);
-		var params = 'url=' + encodeURIComponent(url) + '&maxwidth=' + width + '&maxheight=' + height;
+		var params = 'url=' + encodeURIComponent(url) + '&maxwidth=' + width + '&maxheight=' + Math.ceil(width * ASPECT_RATIO);
 		if (nonce) params += '&_wpnonce=' + encodeURIComponent(nonce);
 
 		return fetch(proxyUrl + '?' + params)
@@ -66,16 +44,6 @@
 			.catch(function(err) { console.warn('oEmbed fetch failed:', err); return null; });
 	}
 
-	/**
-	 * Update embed classes
-	 */
-	function updateClasses(embedBlock, aspectRatio) {
-		embedBlock.classList.add('wp-embed-responsive', 'wp-has-aspect-ratio', 'wp-embed-aspect-' + (aspectRatio || '16:9').replace(':', '-'));
-	}
-
-	/**
-	 * Replace iframe with new oEmbed HTML
-	 */
 	function replaceIframe(embedBlock, newHtml) {
 		if (!newHtml) return;
 
@@ -93,15 +61,12 @@
 
 		wrapper.innerHTML = '';
 		wrapper.appendChild(newIframe);
-		updateClasses(embedBlock, newIframe.getAttribute('data-aspect-ratio'));
+		var aspectRatio = newIframe.getAttribute('data-aspect-ratio') || '16:9';
+		embedBlock.classList.add('wp-embed-responsive', 'wp-has-aspect-ratio', 'wp-embed-aspect-' + aspectRatio.replace(':', '-'));
 	}
 
-	/**
-	 * Process single embed block
-	 */
 	function processEmbed(embedBlock) {
-		if (embedBlock.hasAttribute('data-embed-processed') ||
-		    embedBlock.hasAttribute('data-embed-processing')) return;
+		if (embedBlock.hasAttribute('data-embed-processed') || embedBlock.hasAttribute('data-embed-processing')) return;
 
 		var iframe = embedBlock.querySelector('iframe');
 		if (!iframe) {
@@ -110,15 +75,10 @@
 		}
 
 		var url = getEmbedUrl(iframe);
-		if (!url) {
-			embedBlock.setAttribute('data-embed-processed', 'true');
-			return;
-		}
-
 		var containerWidth = getWidth(embedBlock.querySelector('.wp-block-embed__wrapper') || embedBlock);
 		var iframeWidth = parseInt(iframe.getAttribute('width'), 10) || getWidth(iframe);
 
-		if (!needsUpdate(containerWidth, iframeWidth)) {
+		if (!url || !needsUpdate(containerWidth, iframeWidth)) {
 			embedBlock.setAttribute('data-embed-processed', 'true');
 			return;
 		}
@@ -134,17 +94,11 @@
 		}
 	}
 
-	/**
-	 * Process all embeds
-	 */
 	function processAll() {
 		document.querySelectorAll('.has-fullsize-youtube:not([data-embed-processed]):not([data-embed-processing])')
 			.forEach(processEmbed);
 	}
 
-	/**
-	 * Reset and reprocess on resize
-	 */
 	var resizeTimer;
 	function handleResize() {
 		clearTimeout(resizeTimer);
@@ -155,9 +109,6 @@
 		}, DEBOUNCE_DELAY);
 	}
 
-	/**
-	 * Initialize
-	 */
 	function init() {
 		if (document.readyState === 'loading') {
 			document.addEventListener('DOMContentLoaded', processAll);
