@@ -55,6 +55,11 @@ class Custom_YouTube_Block_Attributes {
 			'default' => false,
 		);
 
+		$settings['attributes']['disableMouseInteraction'] = array(
+			'type'    => 'boolean',
+			'default' => false,
+		);
+
 		return $settings;
 	}
 }

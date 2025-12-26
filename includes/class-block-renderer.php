@@ -46,10 +46,11 @@ class Custom_YouTube_Block_Renderer {
 
 		$attrs = $block['attrs'];
 		$features = array(
-			'fullwidth'    => isset( $attrs['fullwidth'] ) && $attrs['fullwidth'],
-			'autoplay'     => isset( $attrs['autoplay'] ) && $attrs['autoplay'],
-			'hideControls' => isset( $attrs['hideControls'] ) && $attrs['hideControls'],
-			'loop'         => isset( $attrs['loop'] ) && $attrs['loop'],
+			'fullwidth'              => isset( $attrs['fullwidth'] ) && $attrs['fullwidth'],
+			'autoplay'               => isset( $attrs['autoplay'] ) && $attrs['autoplay'],
+			'hideControls'           => isset( $attrs['hideControls'] ) && $attrs['hideControls'],
+			'loop'                   => isset( $attrs['loop'] ) && $attrs['loop'],
+			'disableMouseInteraction' => isset( $attrs['disableMouseInteraction'] ) && $attrs['disableMouseInteraction'],
 		);
 
 		if ( ! array_filter( $features ) ) {
@@ -59,10 +60,11 @@ class Custom_YouTube_Block_Renderer {
 		self::$found_custom_youtube = true;
 
 		$feature_map = array(
-			'fullwidth'    => 'fullwidth',
-			'autoplay'     => 'autoplay',
-			'hideControls' => 'hide-controls',
-			'loop'         => 'loop',
+			'fullwidth'              => 'fullwidth',
+			'autoplay'               => 'autoplay',
+			'hideControls'           => 'hide-controls',
+			'loop'                   => 'loop',
+			'disableMouseInteraction' => 'disable-mouse-interaction',
 		);
 
 		$classes = array();

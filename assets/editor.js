@@ -21,6 +21,7 @@
 			settings.attributes.autoplay = { type: 'boolean', default: false };
 			settings.attributes.hideControls = { type: 'boolean', default: false };
 			settings.attributes.loop = { type: 'boolean', default: false };
+			settings.attributes.disableMouseInteraction = { type: 'boolean', default: false };
 		}
 		return settings;
 	});
@@ -55,6 +56,11 @@
 				key: 'loop',
 				label: __('Loop Video', 'custom-youtube-block'),
 				help: __('Make the video loop continuously when it reaches the end.', 'custom-youtube-block')
+			},
+			{
+				key: 'disableMouseInteraction',
+				label: __('Disable Mouse Interaction', 'custom-youtube-block'),
+				help: __('Prevent all mouse interactions with the video player, including pause on click. Warning: This blocks all user interactions.', 'custom-youtube-block')
 			}
 		];
 

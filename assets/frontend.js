@@ -1,7 +1,7 @@
 /**
  * Frontend JavaScript for Custom YouTube Block
  *
- * Handles fullwidth, autoplay, hide controls, and loop features for YouTube embed blocks.
+ * Handles fullwidth, autoplay, hide controls, loop, and mouse interaction features.
  */
 
 (function() {
@@ -16,17 +16,19 @@
 		return match ? match[1] : null;
 	};
 
+	const getDataAttribute = (embedBlock, attr) => embedBlock.getAttribute(attr) === 'true';
+
 	const applyYouTubeParams = (src, embedBlock) => {
 		if (!src) return src;
 		const url = new URL(src);
-		if (embedBlock.getAttribute('data-autoplay') === 'true') {
+		if (getDataAttribute(embedBlock, 'data-autoplay')) {
 			url.searchParams.set('autoplay', '1');
 			url.searchParams.set('mute', '1');
 		}
-		if (embedBlock.getAttribute('data-hide-controls') === 'true') {
+		if (getDataAttribute(embedBlock, 'data-hide-controls')) {
 			url.searchParams.set('controls', '0');
 		}
-		if (embedBlock.getAttribute('data-loop') === 'true') {
+		if (getDataAttribute(embedBlock, 'data-loop')) {
 			const videoId = extractVideoId(src);
 			if (videoId) {
 				url.searchParams.set('loop', '1');
@@ -36,9 +38,26 @@
 		return url.toString();
 	};
 
+	const applyIframeStyles = (iframe, embedBlock) => {
+		if (getDataAttribute(embedBlock, 'data-disable-mouse-interaction')) {
+			iframe.style.pointerEvents = 'none';
+		}
+	};
+
+	const setupIframe = (iframe, embedBlock) => {
+		iframe.removeAttribute('width');
+		iframe.removeAttribute('height');
+		iframe.style.position = 'absolute';
+		iframe.style.width = '100%';
+		iframe.style.height = '100%';
+		applyIframeStyles(iframe, embedBlock);
+	};
+
 	const processFullwidthEmbed = (embedBlock) => {
 		const iframe = embedBlock.querySelector('iframe');
 		if (!iframe) return;
+
+		applyIframeStyles(iframe, embedBlock);
 
 		const videoId = extractVideoId(iframe.src);
 		if (!videoId) return;
@@ -91,14 +110,10 @@
 					if (!newIframe) return;
 
 					newIframe.src = applyYouTubeParams(newIframe.src, embedBlock);
+					setupIframe(newIframe, embedBlock);
 
 					wrapper.innerHTML = '';
 					wrapper.appendChild(newIframe);
-					newIframe.removeAttribute('width');
-					newIframe.removeAttribute('height');
-					newIframe.style.position = 'absolute';
-					newIframe.style.width = '100%';
-					newIframe.style.height = '100%';
 				});
 		};
 
@@ -117,6 +132,7 @@
 		if (newSrc !== iframe.src) {
 			iframe.src = newSrc;
 		}
+		applyIframeStyles(iframe, embedBlock);
 	};
 
 	document.addEventListener('DOMContentLoaded', () => {

@@ -1139,19 +1139,95 @@ const toggleControls = toggles.map(toggle => el(ToggleControl, {
 
 **Impact:** Easy to add new toggles, consistent structure, less repetition
 
+### 59. Extracted Data Attribute Helper Function
+**When adding mouse interaction feature:**
+
+**Before:** Repeated attribute checking pattern
+```javascript
+if (embedBlock.getAttribute('data-autoplay') === 'true') {
+    // ...
+}
+if (embedBlock.getAttribute('data-hide-controls') === 'true') {
+    // ...
+}
+// Repeated throughout code
+```
+
+**After:** Single helper function
+```javascript
+const getDataAttribute = (embedBlock, attr) => embedBlock.getAttribute(attr) === 'true';
+
+if (getDataAttribute(embedBlock, 'data-autoplay')) {
+    // ...
+}
+```
+
+**Impact:** DRY principle, consistent attribute checking, easier to maintain
+
+### 60. Consolidated Iframe Styling Function
+**When adding mouse interaction feature:**
+
+**Before:** Duplicated iframe styling code
+```javascript
+if (embedBlock.getAttribute('data-disable-mouse-interaction') === 'true') {
+    iframe.style.pointerEvents = 'none';
+}
+// Repeated in multiple places
+```
+
+**After:** Single styling function
+```javascript
+const applyIframeStyles = (iframe, embedBlock) => {
+    if (getDataAttribute(embedBlock, 'data-disable-mouse-interaction')) {
+        iframe.style.pointerEvents = 'none';
+    }
+};
+// Used consistently everywhere
+```
+
+**Impact:** Single source of truth, easier to extend with new styles, less duplication
+
+### 61. Combined Iframe Setup Function
+**When organizing iframe initialization:**
+
+**Before:** Scattered iframe setup code
+```javascript
+newIframe.removeAttribute('width');
+newIframe.removeAttribute('height');
+newIframe.style.position = 'absolute';
+newIframe.style.width = '100%';
+newIframe.style.height = '100%';
+applyIframeStyles(newIframe, embedBlock);
+```
+
+**After:** Single setup function
+```javascript
+const setupIframe = (iframe, embedBlock) => {
+    iframe.removeAttribute('width');
+    iframe.removeAttribute('height');
+    iframe.style.position = 'absolute';
+    iframe.style.width = '100%';
+    iframe.style.height = '100%';
+    applyIframeStyles(iframe, embedBlock);
+};
+```
+
+**Impact:** Better organization, consistent iframe setup, easier to maintain
+
 ---
 
 ## Summary Statistics
 
-- **Total Simplifications:** 58 distinct improvements
-- **Lines Removed:** ~300+ lines of code eliminated
+- **Total Simplifications:** 61 distinct improvements
+- **Lines Removed:** ~350+ lines of code eliminated
 - **Build Dependencies:** Removed entirely (npm, webpack, babel)
 - **Functions Consolidated:** 2 parameter functions → 1 unified function
+- **Helper Functions Extracted:** 3 new reusable helpers
 - **Functions Inlined:** 8+ single-use functions
-- **Redundant Code Removed:** 25+ instances
+- **Redundant Code Removed:** 30+ instances
 - **Security Improvements:** 2 major enhancements
 - **Performance Optimizations:** 4 significant improvements
-- **Feature Expansion:** 6 patterns established for easy extension
+- **Feature Expansion:** 7 patterns established for easy extension
 
 ---
 
@@ -1184,6 +1260,8 @@ const toggleControls = toggles.map(toggle => el(ToggleControl, {
 11. **Reusable helper functions** eliminate duplication and create single sources of truth
 12. **Generic selectors** automatically handle new features without code changes
 13. **Data-driven approaches** (arrays, maps) reduce repetition and improve maintainability
+14. **Consolidated setup functions** group related operations for better organization
+15. **Consistent attribute checking** through helper functions improves code quality
 
 ---
 

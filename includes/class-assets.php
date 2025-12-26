@@ -127,7 +127,7 @@ class Custom_YouTube_Block_Assets {
 		}
 
 		$blocks = parse_blocks( $post->post_content );
-		return ! empty( $blocks ) && Custom_YouTube_Block_Helper::check_blocks_for_youtube_with_attributes( $blocks, array( 'fullwidth', 'autoplay', 'hideControls', 'loop' ) );
+		return ! empty( $blocks ) && Custom_YouTube_Block_Helper::check_blocks_for_youtube_with_attributes( $blocks, array( 'fullwidth', 'autoplay', 'hideControls', 'loop', 'disableMouseInteraction' ) );
 	}
 }
 
