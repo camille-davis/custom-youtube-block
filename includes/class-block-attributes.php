@@ -50,6 +50,11 @@ class Custom_YouTube_Block_Attributes {
 			'default' => false,
 		);
 
+		$settings['attributes']['loop'] = array(
+			'type'    => 'boolean',
+			'default' => false,
+		);
+
 		return $settings;
 	}
 }

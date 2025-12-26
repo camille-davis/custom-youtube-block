@@ -20,6 +20,7 @@
 			settings.attributes.fullwidth = { type: 'boolean', default: false };
 			settings.attributes.autoplay = { type: 'boolean', default: false };
 			settings.attributes.hideControls = { type: 'boolean', default: false };
+			settings.attributes.loop = { type: 'boolean', default: false };
 		}
 		return settings;
 	});
@@ -55,6 +56,12 @@
 						help: __('Remove video player controls from the YouTube embed.', 'custom-youtube-block'),
 						checked: attributes.hideControls,
 						onChange: (value) => setAttributes({ hideControls: value })
+					}),
+					el(ToggleControl, {
+						label: __('Loop Video', 'custom-youtube-block'),
+						help: __('Make the video loop continuously when it reaches the end.', 'custom-youtube-block'),
+						checked: attributes.loop,
+						onChange: (value) => setAttributes({ loop: value })
 					})
 				)
 			)

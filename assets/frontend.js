@@ -1,7 +1,7 @@
 /**
  * Frontend JavaScript for Custom YouTube Block
  *
- * Handles fullwidth, autoplay, and hide controls features for YouTube embed blocks.
+ * Handles fullwidth, autoplay, hide controls, and loop features for YouTube embed blocks.
  */
 
 (function() {
@@ -11,18 +11,28 @@
 	const BREAKPOINTS = [640, 1024, 1920];
 	const EXTRA_LARGE_SIZE = 2560;
 
-	const addAutoplayParams = (src) => {
-		if (!src) return src;
-		const url = new URL(src);
-		url.searchParams.set('autoplay', '1');
-		url.searchParams.set('mute', '1');
-		return url.toString();
+	const extractVideoId = (src) => {
+		const match = src.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\n?#]+)/);
+		return match ? match[1] : null;
 	};
 
-	const addHideControlsParams = (src) => {
+	const applyYouTubeParams = (src, embedBlock) => {
 		if (!src) return src;
 		const url = new URL(src);
-		url.searchParams.set('controls', '0');
+		if (embedBlock.getAttribute('data-autoplay') === 'true') {
+			url.searchParams.set('autoplay', '1');
+			url.searchParams.set('mute', '1');
+		}
+		if (embedBlock.getAttribute('data-hide-controls') === 'true') {
+			url.searchParams.set('controls', '0');
+		}
+		if (embedBlock.getAttribute('data-loop') === 'true') {
+			const videoId = extractVideoId(src);
+			if (videoId) {
+				url.searchParams.set('loop', '1');
+				url.searchParams.set('playlist', videoId);
+			}
+		}
 		return url.toString();
 	};
 
@@ -81,14 +91,7 @@
 					const newIframe = temp.querySelector('iframe');
 					if (!newIframe) return;
 
-					let iframeSrc = newIframe.src;
-					if (embedBlock.getAttribute('data-autoplay') === 'true') {
-						iframeSrc = addAutoplayParams(iframeSrc);
-					}
-					if (embedBlock.getAttribute('data-hide-controls') === 'true') {
-						iframeSrc = addHideControlsParams(iframeSrc);
-					}
-					newIframe.src = iframeSrc;
+					newIframe.src = applyYouTubeParams(newIframe.src, embedBlock);
 
 					wrapper.innerHTML = '';
 					wrapper.appendChild(newIframe);
@@ -108,24 +111,18 @@
 		}).observe(wrapper);
 	};
 
-	const processAutoplayEmbed = (embedBlock) => {
+	const processCustomParamsEmbed = (embedBlock) => {
 		const iframe = embedBlock.querySelector('iframe');
 		if (!iframe) return;
-		let iframeSrc = iframe.src;
-		if (embedBlock.getAttribute('data-autoplay') === 'true') {
-			iframeSrc = addAutoplayParams(iframeSrc);
-		}
-		if (embedBlock.getAttribute('data-hide-controls') === 'true') {
-			iframeSrc = addHideControlsParams(iframeSrc);
-		}
-		if (iframeSrc !== iframe.src) {
-			iframe.src = iframeSrc;
+		const newSrc = applyYouTubeParams(iframe.src, embedBlock);
+		if (newSrc !== iframe.src) {
+			iframe.src = newSrc;
 		}
 	};
 
 	document.addEventListener('DOMContentLoaded', () => {
 		document.querySelectorAll('.has-fullwidth-youtube').forEach(processFullwidthEmbed);
-		document.querySelectorAll('.has-autoplay-youtube:not(.has-fullwidth-youtube), .has-hide-controls-youtube:not(.has-fullwidth-youtube)').forEach(processAutoplayEmbed);
+		document.querySelectorAll('.has-autoplay-youtube:not(.has-fullwidth-youtube), .has-hide-controls-youtube:not(.has-fullwidth-youtube), .has-loop-youtube:not(.has-fullwidth-youtube)').forEach(processCustomParamsEmbed);
 	});
 
 })();

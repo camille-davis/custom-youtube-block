@@ -45,11 +45,14 @@ class Custom_YouTube_Block_Renderer {
 		}
 
 		$attrs = $block['attrs'];
-		$has_fullwidth = isset( $attrs['fullwidth'] ) && $attrs['fullwidth'];
-		$has_autoplay = isset( $attrs['autoplay'] ) && $attrs['autoplay'];
-		$has_hide_controls = isset( $attrs['hideControls'] ) && $attrs['hideControls'];
+		$features = array(
+			'fullwidth'    => isset( $attrs['fullwidth'] ) && $attrs['fullwidth'],
+			'autoplay'     => isset( $attrs['autoplay'] ) && $attrs['autoplay'],
+			'hideControls' => isset( $attrs['hideControls'] ) && $attrs['hideControls'],
+			'loop'         => isset( $attrs['loop'] ) && $attrs['loop'],
+		);
 
-		if ( ! $has_fullwidth && ! $has_autoplay && ! $has_hide_controls ) {
+		if ( ! array_filter( $features ) ) {
 			return $block_content;
 		}
 
@@ -58,19 +61,24 @@ class Custom_YouTube_Block_Renderer {
 		$classes = array();
 		$data_attrs = array();
 
-		if ( $has_fullwidth ) {
+		if ( $features['fullwidth'] ) {
 			$classes[] = 'has-fullwidth-youtube';
 			$data_attrs[] = 'data-fullwidth="true"';
 		}
 
-		if ( $has_autoplay ) {
+		if ( $features['autoplay'] ) {
 			$classes[] = 'has-autoplay-youtube';
 			$data_attrs[] = 'data-autoplay="true"';
 		}
 
-		if ( $has_hide_controls ) {
+		if ( $features['hideControls'] ) {
 			$classes[] = 'has-hide-controls-youtube';
 			$data_attrs[] = 'data-hide-controls="true"';
+		}
+
+		if ( $features['loop'] ) {
+			$classes[] = 'has-loop-youtube';
+			$data_attrs[] = 'data-loop="true"';
 		}
 
 		$class_string = implode( ' ', $classes );
