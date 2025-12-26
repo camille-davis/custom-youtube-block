@@ -5,21 +5,90 @@
  */
 
 (function() {
-	var MIN_WIDTH = 200;
-	var WIDTH_THRESHOLD = 50;
-	var PERCENTAGE_THRESHOLD = 20;
+	// Fetch at large size, then scale down with CSS
+	// This avoids multiple fetches and ensures iframe is large enough
+	var FETCH_SIZE = 1920; // Large enough for any screen
+
+	var ASPECT_RATIO = 0.5625; // 16:9
 	var DEBOUNCE_DELAY = 250;
-	var ASPECT_RATIO = 0.5625;
 
 	var settings = window.fullsizeYouTubeSettings || {};
 	var proxyUrl = settings.restUrl || '/wp-json/oembed/1.0/proxy';
 
-	function getWidth(element) {
-		return element ? Math.floor(element.getBoundingClientRect().width) : 0;
+
+	/**
+	 * Extract YouTube video ID from iframe src
+	 */
+	function getVideoId(iframe) {
+		if (!iframe || !iframe.src) return null;
+		var match = iframe.src.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\n?#]+)/);
+		return match ? match[1] : null;
 	}
 
+	/**
+	 * Fetch oEmbed at preset size
+	 */
+	function fetchOEmbed(url, width) {
+		var params = 'url=' + encodeURIComponent(url) + '&maxwidth=' + width + '&maxheight=' + Math.ceil(width * ASPECT_RATIO);
+		return fetch(proxyUrl + '?' + params)
+			.then(function(res) { return res.ok ? res.json() : Promise.reject(new Error('Request failed')); })
+			.then(function(data) { return data.html || null; })
+			.catch(function(err) { console.warn('oEmbed fetch failed:', err); return null; });
+	}
+
+	/**
+	 * Make iframe responsive to container width using CSS
+	 * WordPress uses :before pseudo-element with padding-top for aspect ratio
+	 */
+	function makeResponsive(iframe, wrapper, embedBlock) {
+		if (!iframe || !wrapper) return;
+
+		// Remove fixed dimensions
+		iframe.removeAttribute('width');
+		iframe.removeAttribute('height');
+
+		// Ensure wrapper is positioned relatively and full width
+		wrapper.style.position = 'relative';
+		wrapper.style.width = '100%';
+
+		// Calculate and set height based on width (16:9 aspect ratio)
+		// This ensures height even if :before pseudo-element doesn't work
+		function updateHeight() {
+			var wrapperWidth = wrapper.getBoundingClientRect().width;
+			if (wrapperWidth > 0) {
+				wrapper.style.height = Math.ceil(wrapperWidth * ASPECT_RATIO) + 'px';
+			}
+		}
+
+		// Set initial height
+		setTimeout(updateHeight, 0);
+
+		// Update on resize
+		if (window.ResizeObserver) {
+			var resizeObserver = new ResizeObserver(updateHeight);
+			resizeObserver.observe(wrapper);
+		} else {
+			window.addEventListener('resize', updateHeight);
+		}
+
+		// Ensure iframe is absolutely positioned and fills wrapper
+		iframe.style.position = 'absolute';
+		iframe.style.top = '0';
+		iframe.style.left = '0';
+		iframe.style.width = '100%';
+		iframe.style.height = '100%';
+		iframe.style.border = '0';
+
+		// Ensure container is full width
+		embedBlock.style.width = '100%';
+		embedBlock.style.maxWidth = '100%';
+	}
+
+	/**
+	 * Process a single embed block
+	 */
 	function processEmbed(embedBlock) {
-		if (embedBlock.hasAttribute('data-embed-processed') || embedBlock.hasAttribute('data-embed-processing')) return;
+		if (embedBlock.hasAttribute('data-embed-processed')) return;
 
 		var iframe = embedBlock.querySelector('iframe');
 		if (!iframe) {
@@ -27,81 +96,73 @@
 			return;
 		}
 
-		// Get embed URL
-		var url = null;
-		if (iframe.src) {
-			var match = iframe.src.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\n?#]+)/);
-			if (match) url = 'https://www.youtube.com/watch?v=' + match[1];
-		}
-
-		var containerWidth = getWidth(embedBlock.querySelector('.wp-block-embed__wrapper') || embedBlock);
-		var iframeWidth = parseInt(iframe.getAttribute('width'), 10) || getWidth(iframe);
-
-		// Check if update needed
-		var needsUpdate = false;
-		if (containerWidth && iframeWidth && containerWidth >= MIN_WIDTH) {
-			var diff = Math.abs(containerWidth - iframeWidth);
-			needsUpdate = diff > WIDTH_THRESHOLD || diff / containerWidth * 100 > PERCENTAGE_THRESHOLD;
-		}
-
-		if (!url || !needsUpdate) {
+		var videoId = getVideoId(iframe);
+		if (!videoId) {
 			embedBlock.setAttribute('data-embed-processed', 'true');
 			return;
 		}
 
-		embedBlock.setAttribute('data-embed-processing', 'true');
+		var url = 'https://www.youtube.com/watch?v=' + videoId;
 
-		// Fetch oEmbed
-		var params = 'url=' + encodeURIComponent(url) + '&maxwidth=' + containerWidth + '&maxheight=' + Math.ceil(containerWidth * ASPECT_RATIO);
+		// Fetch oEmbed at large size (will scale down with CSS)
+		fetchOEmbed(url, FETCH_SIZE).then(function(html) {
+			if (!html) {
+				embedBlock.setAttribute('data-embed-processed', 'true');
+				return;
+			}
 
-		fetch(proxyUrl + '?' + params)
-			.then(function(res) { return res.ok ? res.json() : Promise.reject(new Error('Request failed')); })
-			.then(function(data) { return data.html || null; })
-			.catch(function(err) { console.warn('oEmbed fetch failed:', err); return null; })
-			.then(function(html) {
-				// Replace iframe
-				if (html) {
-					var temp = document.createElement('div');
-					temp.innerHTML = html;
-					var newIframe = temp.querySelector('iframe');
-					if (newIframe) {
-						var wrapper = embedBlock.querySelector('.wp-block-embed__wrapper');
-						if (!wrapper) {
-							wrapper = document.createElement('div');
-							wrapper.className = 'wp-block-embed__wrapper';
-							embedBlock.appendChild(wrapper);
-						}
-						wrapper.innerHTML = '';
-						wrapper.appendChild(newIframe);
-						var aspectRatio = newIframe.getAttribute('data-aspect-ratio') || '16:9';
-						embedBlock.classList.add('wp-embed-responsive', 'wp-has-aspect-ratio', 'wp-embed-aspect-' + aspectRatio.replace(':', '-'));
-					}
+			// Replace iframe with fetched version
+			var temp = document.createElement('div');
+			temp.innerHTML = html;
+			var newIframe = temp.querySelector('iframe');
+			if (newIframe) {
+				var wrapper = embedBlock.querySelector('.wp-block-embed__wrapper');
+				if (!wrapper) {
+					wrapper = document.createElement('div');
+					wrapper.className = 'wp-block-embed__wrapper';
+					embedBlock.insertBefore(wrapper, iframe);
 				}
-			})
-			.then(cleanup, cleanup);
 
-		function cleanup() {
+				// Replace old iframe
+				if (iframe.parentNode === wrapper) {
+					wrapper.replaceChild(newIframe, iframe);
+				} else {
+					wrapper.innerHTML = '';
+					wrapper.appendChild(newIframe);
+				}
+
+				// Remove fixed dimensions and ensure full width
+				makeResponsive(newIframe, wrapper, embedBlock);
+
+				// Add responsive classes - WordPress CSS uses these for aspect ratio
+				// wp-embed-responsive: enables responsive behavior
+				// wp-has-aspect-ratio: enables :before padding-top trick
+				// wp-embed-aspect-16-9: sets padding-top to 56.25% (16:9 ratio)
+				embedBlock.classList.add('wp-embed-responsive', 'wp-has-aspect-ratio', 'wp-embed-aspect-16-9');
+			}
+
 			embedBlock.setAttribute('data-embed-processed', 'true');
-			embedBlock.removeAttribute('data-embed-processing');
-		}
+		});
 	}
 
+	/**
+	 * Process all embeds
+	 */
 	function processAll() {
-		document.querySelectorAll('.has-fullsize-youtube:not([data-embed-processed]):not([data-embed-processing])')
+		document.querySelectorAll('.has-fullsize-youtube:not([data-embed-processed])')
 			.forEach(processEmbed);
 	}
 
-	// Process all embeds at given interval on resize.
-	var resizeTimer;
+	/**
+	 * Handle resize - no need to re-fetch, CSS handles scaling
+	 */
 	function handleResize() {
-		clearTimeout(resizeTimer);
-		resizeTimer = setTimeout(function() {
-			document.querySelectorAll('.has-fullsize-youtube[data-embed-processed]')
-				.forEach(function(el) { el.removeAttribute('data-embed-processed'); });
-			processAll();
-		}, DEBOUNCE_DELAY);
+		// CSS handles responsive scaling, no action needed
 	}
 
+	/**
+	 * Initialize
+	 */
 	function init() {
 		document.addEventListener('DOMContentLoaded', processAll);
 		window.addEventListener('resize', handleResize);
@@ -110,4 +171,3 @@
 	init();
 
 })();
-
