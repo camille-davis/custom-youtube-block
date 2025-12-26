@@ -9,29 +9,19 @@
 	// Fetch at large size, then scale down with CSS.
 	const FETCH_SIZE = 1920;
 	const ASPECT_RATIO = 0.5625; // 16:9
-
-	const settings = window.fullsizeYouTubeSettings || {};
-	const proxyUrl = settings.restUrl || '/wp-json/oembed/1.0/proxy';
+	const PROXY_URL = window.fullsizeYouTubeSettings.restUrl || '/wp-json/oembed/1.0/proxy';
 
 	/**
 	 * Process a single embed block
 	 */
 	const processEmbed = (embedBlock) => {
-		if (embedBlock.hasAttribute('data-embed-processed')) return;
-
 		const iframe = embedBlock.querySelector('iframe');
-		if (!iframe) {
-			embedBlock.setAttribute('data-embed-processed', 'true');
-			return;
-		}
+		if (!iframe) return;
 
 		// Extract YouTube video ID from iframe src
 		const match = iframe.src.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\n?#]+)/);
 		const videoId = match ? match[1] : null;
-		if (!videoId) {
-			embedBlock.setAttribute('data-embed-processed', 'true');
-			return;
-		}
+		if (!videoId) return;
 
 		const url = 'https://www.youtube.com/watch?v=' + videoId;
 
@@ -41,15 +31,12 @@
 			maxwidth: FETCH_SIZE,
 			maxheight: Math.ceil(FETCH_SIZE * ASPECT_RATIO)
 		});
-		fetch(proxyUrl + '?' + params.toString())
+		fetch(PROXY_URL + '?' + params.toString())
 			.then((res) => res.ok ? res.json() : Promise.reject(new Error('Request failed')))
 			.then((data) => data.html || null)
 			.catch((err) => { console.warn('oEmbed fetch failed:', err); return null; })
 			.then((html) => {
-				if (!html) {
-					embedBlock.setAttribute('data-embed-processed', 'true');
-					return;
-				}
+				if (!html) return;
 
 				// Replace iframe with fetched version
 				const temp = document.createElement('div');
@@ -110,14 +97,11 @@
 					// wp-embed-aspect-16-9: sets padding-top to 56.25% (16:9 ratio)
 					embedBlock.classList.add('wp-embed-responsive', 'wp-has-aspect-ratio', 'wp-embed-aspect-16-9');
 				}
-
-				embedBlock.setAttribute('data-embed-processed', 'true');
 			});
 	};
 
 	document.addEventListener('DOMContentLoaded', () => {
-		document.querySelectorAll('.has-fullsize-youtube:not([data-embed-processed])')
-			.forEach(processEmbed);
+		document.querySelectorAll('.has-fullsize-youtube').forEach(processEmbed);
 	});
 
 })();
