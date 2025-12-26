@@ -5,18 +5,14 @@
  */
 
 (function() {
-	'use strict';
-
 	var MIN_WIDTH = 200;
 	var WIDTH_THRESHOLD = 50;
 	var PERCENTAGE_THRESHOLD = 20;
 	var DEBOUNCE_DELAY = 250;
-	var PROCESS_DELAY = 100;
 	var ASPECT_RATIO = 0.5625;
 
 	var settings = window.fullsizeYouTubeSettings || {};
 	var proxyUrl = settings.restUrl || '/wp-json/oembed/1.0/proxy';
-	var nonce = settings.nonce || '';
 
 	function getWidth(element) {
 		return element ? Math.floor(element.getBoundingClientRect().width) : 0;
@@ -57,7 +53,6 @@
 
 		// Fetch oEmbed
 		var params = 'url=' + encodeURIComponent(url) + '&maxwidth=' + containerWidth + '&maxheight=' + Math.ceil(containerWidth * ASPECT_RATIO);
-		if (nonce) params += '&_wpnonce=' + encodeURIComponent(nonce);
 
 		fetch(proxyUrl + '?' + params)
 			.then(function(res) { return res.ok ? res.json() : Promise.reject(new Error('Request failed')); })
@@ -96,6 +91,7 @@
 			.forEach(processEmbed);
 	}
 
+	// Process all embeds at given interval on resize.
 	var resizeTimer;
 	function handleResize() {
 		clearTimeout(resizeTimer);
@@ -107,20 +103,8 @@
 	}
 
 	function init() {
-		if (document.readyState === 'loading') {
-			document.addEventListener('DOMContentLoaded', processAll);
-		} else {
-			processAll();
-		}
-
-		setTimeout(processAll, PROCESS_DELAY);
+		document.addEventListener('DOMContentLoaded', processAll);
 		window.addEventListener('resize', handleResize);
-
-		if (window.MutationObserver) {
-			new MutationObserver(function() {
-				setTimeout(processAll, PROCESS_DELAY);
-			}).observe(document.body, { childList: true, subtree: true });
-		}
 	}
 
 	init();

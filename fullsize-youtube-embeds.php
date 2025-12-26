@@ -46,6 +46,9 @@ class Fullsize_YouTube_Embeds {
 		add_filter( 'block_type_metadata_settings', array( $this, 'add_fullsize_attribute' ), 10, 2 );
 		add_filter( 'render_block_core/embed', array( $this, 'render_embed_block' ), 10, 2 );
 
+		// Make oEmbed proxy endpoint public for YouTube URLs
+		add_filter( 'rest_pre_dispatch', array( $this, 'make_oembed_proxy_public' ), 10, 3 );
+
 		// Editor assets
 		add_action( 'enqueue_block_editor_assets', array( $this, 'enqueue_editor_assets' ) );
 
@@ -106,6 +109,47 @@ class Fullsize_YouTube_Embeds {
 		);
 
 		return $block_content;
+	}
+
+	// ============================================================================
+	// REST API Permissions
+	// ============================================================================
+
+	/**
+	 * Make oEmbed proxy endpoint public for YouTube URLs
+	 *
+	 * By default, the oEmbed proxy endpoint requires edit_posts capability.
+	 * This filter intercepts YouTube oEmbed requests and handles them directly,
+	 * bypassing the permission check.
+	 *
+	 * @param mixed           $result  Response to replace the requested version with.
+	 * @param WP_REST_Server  $server  Server instance.
+	 * @param WP_REST_Request $request Request used to generate the response.
+	 * @return mixed Response or null to continue with normal processing.
+	 */
+	public function make_oembed_proxy_public( $result, $server, $request ) {
+		// Only handle oEmbed proxy requests
+		if ( '/oembed/1.0/proxy' !== $request->get_route() ) {
+			return $result;
+		}
+
+		// Check if it's a YouTube URL
+		$url = $request->get_param( 'url' );
+		if ( ! $url || ( false === strpos( $url, 'youtube.com' ) && false === strpos( $url, 'youtu.be' ) ) ) {
+			return $result;
+		}
+
+		// For YouTube URLs, bypass permission check by calling the controller directly
+		$controller = new WP_oEmbed_Controller();
+		$response = $controller->get_proxy_item( $request );
+
+		// If we got a response, return it (bypassing permission check)
+		if ( ! is_wp_error( $response ) ) {
+			return rest_ensure_response( $response );
+		}
+
+		// If there was an error, let normal processing handle it
+		return $result;
 	}
 
 	// ============================================================================
@@ -184,7 +228,6 @@ class Fullsize_YouTube_Embeds {
 			'fullsizeYouTubeSettings',
 			array(
 				'restUrl' => rest_url( 'oembed/1.0/proxy' ),
-				'nonce'   => wp_create_nonce( 'wp_rest' ),
 			)
 		);
 	}
