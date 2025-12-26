@@ -45,6 +45,11 @@ class Custom_YouTube_Block_Attributes {
 			'default' => false,
 		);
 
+		$settings['attributes']['hideControls'] = array(
+			'type'    => 'boolean',
+			'default' => false,
+		);
+
 		return $settings;
 	}
 }

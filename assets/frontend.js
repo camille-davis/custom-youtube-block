@@ -1,7 +1,7 @@
 /**
  * Frontend JavaScript for Custom YouTube Block
  *
- * Handles fullwidth and autoplay features for YouTube embed blocks.
+ * Handles fullwidth, autoplay, and hide controls features for YouTube embed blocks.
  */
 
 (function() {
@@ -16,6 +16,13 @@
 		const url = new URL(src);
 		url.searchParams.set('autoplay', '1');
 		url.searchParams.set('mute', '1');
+		return url.toString();
+	};
+
+	const addHideControlsParams = (src) => {
+		if (!src) return src;
+		const url = new URL(src);
+		url.searchParams.set('controls', '0');
 		return url.toString();
 	};
 
@@ -74,9 +81,14 @@
 					const newIframe = temp.querySelector('iframe');
 					if (!newIframe) return;
 
+					let iframeSrc = newIframe.src;
 					if (embedBlock.getAttribute('data-autoplay') === 'true') {
-						newIframe.src = addAutoplayParams(newIframe.src);
+						iframeSrc = addAutoplayParams(iframeSrc);
 					}
+					if (embedBlock.getAttribute('data-hide-controls') === 'true') {
+						iframeSrc = addHideControlsParams(iframeSrc);
+					}
+					newIframe.src = iframeSrc;
 
 					wrapper.innerHTML = '';
 					wrapper.appendChild(newIframe);
@@ -98,13 +110,22 @@
 
 	const processAutoplayEmbed = (embedBlock) => {
 		const iframe = embedBlock.querySelector('iframe');
-		if (!iframe || embedBlock.getAttribute('data-autoplay') !== 'true') return;
-		iframe.src = addAutoplayParams(iframe.src);
+		if (!iframe) return;
+		let iframeSrc = iframe.src;
+		if (embedBlock.getAttribute('data-autoplay') === 'true') {
+			iframeSrc = addAutoplayParams(iframeSrc);
+		}
+		if (embedBlock.getAttribute('data-hide-controls') === 'true') {
+			iframeSrc = addHideControlsParams(iframeSrc);
+		}
+		if (iframeSrc !== iframe.src) {
+			iframe.src = iframeSrc;
+		}
 	};
 
 	document.addEventListener('DOMContentLoaded', () => {
 		document.querySelectorAll('.has-fullwidth-youtube').forEach(processFullwidthEmbed);
-		document.querySelectorAll('.has-autoplay-youtube:not(.has-fullwidth-youtube)').forEach(processAutoplayEmbed);
+		document.querySelectorAll('.has-autoplay-youtube:not(.has-fullwidth-youtube), .has-hide-controls-youtube:not(.has-fullwidth-youtube)').forEach(processAutoplayEmbed);
 	});
 
 })();

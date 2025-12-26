@@ -47,8 +47,9 @@ class Custom_YouTube_Block_Renderer {
 		$attrs = $block['attrs'];
 		$has_fullwidth = isset( $attrs['fullwidth'] ) && $attrs['fullwidth'];
 		$has_autoplay = isset( $attrs['autoplay'] ) && $attrs['autoplay'];
+		$has_hide_controls = isset( $attrs['hideControls'] ) && $attrs['hideControls'];
 
-		if ( ! $has_fullwidth && ! $has_autoplay ) {
+		if ( ! $has_fullwidth && ! $has_autoplay && ! $has_hide_controls ) {
 			return $block_content;
 		}
 
@@ -65,6 +66,11 @@ class Custom_YouTube_Block_Renderer {
 		if ( $has_autoplay ) {
 			$classes[] = 'has-autoplay-youtube';
 			$data_attrs[] = 'data-autoplay="true"';
+		}
+
+		if ( $has_hide_controls ) {
+			$classes[] = 'has-hide-controls-youtube';
+			$data_attrs[] = 'data-hide-controls="true"';
 		}
 
 		$class_string = implode( ' ', $classes );

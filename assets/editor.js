@@ -19,6 +19,7 @@
 			settings.attributes = settings.attributes || {};
 			settings.attributes.fullwidth = { type: 'boolean', default: false };
 			settings.attributes.autoplay = { type: 'boolean', default: false };
+			settings.attributes.hideControls = { type: 'boolean', default: false };
 		}
 		return settings;
 	});
@@ -48,6 +49,12 @@
 						help: __('Automatically play the video when the page loads. Video will be muted.', 'custom-youtube-block'),
 						checked: attributes.autoplay,
 						onChange: (value) => setAttributes({ autoplay: value })
+					}),
+					el(ToggleControl, {
+						label: __('Hide Controls', 'custom-youtube-block'),
+						help: __('Remove video player controls from the YouTube embed.', 'custom-youtube-block'),
+						checked: attributes.hideControls,
+						onChange: (value) => setAttributes({ hideControls: value })
 					})
 				)
 			)
