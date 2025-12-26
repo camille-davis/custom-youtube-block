@@ -12,6 +12,22 @@
 	const EXTRA_LARGE_SIZE = 2560;
 
 	/**
+	 * Get fetch size for given width
+	 */
+	const getFetchSize = (width) => BREAKPOINTS.find(bp => width <= bp) || EXTRA_LARGE_SIZE;
+
+	/**
+	 * Configure iframe for responsive display
+	 */
+	const configureIframe = (iframe) => {
+		iframe.removeAttribute('width');
+		iframe.removeAttribute('height');
+		iframe.style.position = 'absolute';
+		iframe.style.width = '100%';
+		iframe.style.height = '100%';
+	};
+
+	/**
 	 * Process a single embed block
 	 */
 	const processEmbed = (embedBlock) => {
@@ -33,22 +49,48 @@
 			embedBlock.insertBefore(wrapper, iframe);
 		}
 
+		wrapper.style.width = '100%';
+
 		// Track current fetch size
 		let currentFetchSize = null;
+
+		/**
+		 * Get wrapper width
+		 */
+		const getWrapperWidth = () => wrapper.getBoundingClientRect().width;
+
+		/**
+		 * Update embed height based on width
+		 */
+		const updateHeight = () => {
+			const width = getWrapperWidth();
+			if (width > 0) {
+				wrapper.style.height = Math.ceil(width * ASPECT_RATIO) + 'px';
+			}
+		};
+
+		/**
+		 * Replace iframe with new one from HTML
+		 */
+		const replaceIframe = (html) => {
+			const temp = document.createElement('div');
+			temp.innerHTML = html;
+			const newIframe = temp.querySelector('iframe');
+			if (!newIframe) return;
+
+			wrapper.innerHTML = '';
+			wrapper.appendChild(newIframe);
+			configureIframe(newIframe);
+		};
 
 		/**
 		 * Fetch and update embed based on container width
 		 */
 		const fetchAndUpdate = () => {
-			const wrapperWidth = wrapper.getBoundingClientRect().width;
-			if (wrapperWidth <= 0) return;
+			const width = getWrapperWidth();
+			if (width <= 0) return;
 
-			// Determine fetch size based on breakpoints
-			let fetchSize;
-			if (wrapperWidth <= BREAKPOINTS[0]) fetchSize = BREAKPOINTS[0];
-			else if (wrapperWidth <= BREAKPOINTS[1]) fetchSize = BREAKPOINTS[1];
-			else if (wrapperWidth <= BREAKPOINTS[2]) fetchSize = BREAKPOINTS[2];
-			else fetchSize = EXTRA_LARGE_SIZE;
+			const fetchSize = getFetchSize(width);
 
 			// Only fetch if size changed
 			if (fetchSize === currentFetchSize) return;
@@ -65,49 +107,18 @@
 				.then((res) => res.ok ? res.json() : Promise.reject(new Error('Request failed')))
 				.then((data) => data.html || null)
 				.catch((err) => { console.warn('oEmbed fetch failed:', err); return null; })
-				.then((html) => {
-					if (!html) return;
-
-					// Parse HTML to extract iframe
-					const temp = document.createElement('div');
-					temp.innerHTML = html;
-					const newIframe = temp.querySelector('iframe');
-					if (!newIframe) return;
-
-					// Replace iframe
-					wrapper.innerHTML = '';
-					wrapper.appendChild(newIframe);
-
-					// Configure iframe
-					newIframe.removeAttribute('width');
-					newIframe.removeAttribute('height');
-					newIframe.style.position = 'absolute';
-					newIframe.style.width = '100%';
-					newIframe.style.height = '100%';
-				});
+				.then((html) => html && replaceIframe(html));
 		};
 
-		// Configure wrapper
-		wrapper.style.width = '100%';
-
-		// Set up height calculation based on width (16:9 aspect ratio)
-		const updateHeight = () => {
-			const wrapperWidth = wrapper.getBoundingClientRect().width;
-			if (wrapperWidth > 0) {
-				wrapper.style.height = Math.ceil(wrapperWidth * ASPECT_RATIO) + 'px';
-			}
-		};
-
-		// Initial fetch and height setup
-		fetchAndUpdate();
+		// Initial setup
 		updateHeight();
+		fetchAndUpdate();
 
-		// Watch for resize and update accordingly
-		const resizeObserver = new ResizeObserver(() => {
+		// Watch for resize
+		new ResizeObserver(() => {
 			updateHeight();
 			fetchAndUpdate();
-		});
-		resizeObserver.observe(wrapper);
+		}).observe(wrapper);
 	};
 
 	document.addEventListener('DOMContentLoaded', () => {
