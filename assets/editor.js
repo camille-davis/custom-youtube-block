@@ -37,8 +37,8 @@
 			el(InspectorControls, {},
 				el(PanelBody, { title: __('YouTube Settings', 'fullsize-youtube-embeds') },
 					el(ToggleControl, {
-						label: __('Fullsize Mode', 'fullsize-youtube-embeds'),
-						help: __('Enable to make this embed dynamically resize to match its container width, just like in the editor.', 'fullsize-youtube-embeds'),
+						label: __('Fullsize', 'fullsize-youtube-embeds'),
+						help: __('Make youtube video fullsize.', 'fullsize-youtube-embeds'),
 						checked: attributes.fullsize,
 						onChange: (value) => setAttributes({ fullsize: value })
 					})
