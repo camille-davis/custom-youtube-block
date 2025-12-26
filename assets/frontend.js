@@ -57,7 +57,6 @@
 				wrapper.appendChild(newIframe);
 
 				// Configure wrapper
-				wrapper.style.position = 'relative';
 				wrapper.style.width = '100%';
 
 				// Set up height calculation based on width (16:9 aspect ratio)
@@ -74,15 +73,8 @@
 				newIframe.removeAttribute('width');
 				newIframe.removeAttribute('height');
 				newIframe.style.position = 'absolute';
-				newIframe.style.top = '0';
-				newIframe.style.left = '0';
 				newIframe.style.width = '100%';
 				newIframe.style.height = '100%';
-
-				// Configure container
-				embedBlock.style.width = '100%';
-				embedBlock.style.maxWidth = '100%';
-				embedBlock.classList.add('wp-embed-responsive', 'wp-has-aspect-ratio', 'wp-embed-aspect-16-9');
 			});
 	};
 
