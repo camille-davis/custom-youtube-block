@@ -1,20 +1,37 @@
 /**
- * Frontend JavaScript for Fullwidth YouTube Embeds
+ * Frontend JavaScript for Custom YouTube Block
  *
- * Only applies to YouTube embed blocks with fullwidth attribute enabled.
+ * Handles fullwidth and autoplay features for YouTube embed blocks.
  */
 
 (function() {
 
 	const ASPECT_RATIO = 0.5625; // 16:9
-	const PROXY_URL = window.fullwidthYouTubeSettings.restUrl || '/wp-json/oembed/1.0/proxy';
+	const PROXY_URL = window.customYouTubeSettings ? window.customYouTubeSettings.restUrl : '/wp-json/oembed/1.0/proxy';
 	const BREAKPOINTS = [640, 1024, 1920];
 	const EXTRA_LARGE_SIZE = 2560;
 
 	/**
-	 * Process a single embed block
+	 * Add autoplay parameters to YouTube iframe URL
+	 *
+	 * @param {string} src Original iframe src URL
+	 * @return {string} Modified URL with autoplay and mute parameters
 	 */
-	const processEmbed = (embedBlock) => {
+	const addAutoplayParams = (src) => {
+		if (!src) return src;
+
+		const url = new URL(src);
+		url.searchParams.set('autoplay', '1');
+		url.searchParams.set('mute', '1');
+		return url.toString();
+	};
+
+	/**
+	 * Process a single embed block with fullwidth
+	 *
+	 * @param {HTMLElement} embedBlock The embed block element
+	 */
+	const processFullwidthEmbed = (embedBlock) => {
 		const iframe = embedBlock.querySelector('iframe');
 		if (!iframe) return;
 
@@ -86,6 +103,12 @@
 					const newIframe = temp.querySelector('iframe');
 					if (!newIframe) return;
 
+					// Check if autoplay is enabled
+					const hasAutoplay = embedBlock.hasAttribute('data-autoplay') && embedBlock.getAttribute('data-autoplay') === 'true';
+					if (hasAutoplay) {
+						newIframe.src = addAutoplayParams(newIframe.src);
+					}
+
 					wrapper.innerHTML = '';
 					wrapper.appendChild(newIframe);
 
@@ -109,8 +132,28 @@
 		}).observe(wrapper);
 	};
 
+	/**
+	 * Process a single embed block with autoplay (but not fullwidth)
+	 *
+	 * @param {HTMLElement} embedBlock The embed block element
+	 */
+	const processAutoplayEmbed = (embedBlock) => {
+		const iframe = embedBlock.querySelector('iframe');
+		if (!iframe) return;
+
+		// Check if autoplay is enabled
+		const hasAutoplay = embedBlock.hasAttribute('data-autoplay') && embedBlock.getAttribute('data-autoplay') === 'true';
+		if (hasAutoplay) {
+			iframe.src = addAutoplayParams(iframe.src);
+		}
+	};
+
 	document.addEventListener('DOMContentLoaded', () => {
-		document.querySelectorAll('.has-fullwidth-youtube').forEach(processEmbed);
+		// Process fullwidth embeds (which may also have autoplay)
+		document.querySelectorAll('.has-fullwidth-youtube').forEach(processFullwidthEmbed);
+
+		// Process autoplay-only embeds (not fullwidth)
+		document.querySelectorAll('.has-autoplay-youtube:not(.has-fullwidth-youtube)').forEach(processAutoplayEmbed);
 	});
 
 })();

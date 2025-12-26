@@ -1,7 +1,7 @@
 /**
- * Editor JavaScript for Fullwidth YouTube Embeds
+ * Editor JavaScript for Custom YouTube Block
  *
- * Adds a toggle control to YouTube embed blocks in the editor.
+ * Adds toggle controls to YouTube embed blocks in the editor.
  */
 
 (function() {
@@ -13,17 +13,18 @@
 	const ToggleControl = wp.components.ToggleControl;
 	const addFilter = wp.hooks.addFilter;
 
-	// Register the fullwidth attribute (client-side)
-	addFilter('blocks.registerBlockType', 'fullwidth-youtube-embeds/add-attribute', (settings, name) => {
+	// Register custom attributes (client-side)
+	addFilter('blocks.registerBlockType', 'custom-youtube-block/add-attribute', (settings, name) => {
 		if (name === 'core/embed') {
 			settings.attributes = settings.attributes || {};
 			settings.attributes.fullwidth = { type: 'boolean', default: false };
+			settings.attributes.autoplay = { type: 'boolean', default: false };
 		}
 		return settings;
 	});
 
-	// Add fullwidth toggle to YouTube embed blocks
-	addFilter('editor.BlockEdit', 'fullwidth-youtube-embeds/add-toggle', (BlockEdit) => (props) => {
+	// Add toggle controls to YouTube embed blocks
+	addFilter('editor.BlockEdit', 'custom-youtube-block/add-toggles', (BlockEdit) => (props) => {
 		if (props.name !== 'core/embed') return el(BlockEdit, props);
 
 		const { attributes, setAttributes } = props;
@@ -35,12 +36,18 @@
 		return el(Fragment, {},
 			el(BlockEdit, props),
 			el(InspectorControls, {},
-				el(PanelBody, { title: __('YouTube Settings', 'fullwidth-youtube-embeds') },
+				el(PanelBody, { title: __('YouTube Settings', 'custom-youtube-block') },
 					el(ToggleControl, {
-						label: __('Fullwidth', 'fullwidth-youtube-embeds'),
-						help: __('Make youtube video fullwidth.', 'fullwidth-youtube-embeds'),
-						checked: attributes.fullwidth,
+						label: __('Fullwidth', 'custom-youtube-block'),
+						help: __('Make youtube video fullwidth.', 'custom-youtube-block'),
+						checked: attributes.fullwidth || false,
 						onChange: (value) => setAttributes({ fullwidth: value })
+					}),
+					el(ToggleControl, {
+						label: __('Autoplay', 'custom-youtube-block'),
+						help: __('Automatically play the video when the page loads. Video will be muted.', 'custom-youtube-block'),
+						checked: attributes.autoplay || false,
+						onChange: (value) => setAttributes({ autoplay: value })
 					})
 				)
 			)
