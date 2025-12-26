@@ -12,22 +12,6 @@
 	const EXTRA_LARGE_SIZE = 2560;
 
 	/**
-	 * Get fetch size for given width
-	 */
-	const getFetchSize = (width) => BREAKPOINTS.find(bp => width <= bp) || EXTRA_LARGE_SIZE;
-
-	/**
-	 * Configure iframe for responsive display
-	 */
-	const configureIframe = (iframe) => {
-		iframe.removeAttribute('width');
-		iframe.removeAttribute('height');
-		iframe.style.position = 'absolute';
-		iframe.style.width = '100%';
-		iframe.style.height = '100%';
-	};
-
-	/**
 	 * Process a single embed block
 	 */
 	const processEmbed = (embedBlock) => {
@@ -70,27 +54,13 @@
 		};
 
 		/**
-		 * Replace iframe with new one from HTML
-		 */
-		const replaceIframe = (html) => {
-			const temp = document.createElement('div');
-			temp.innerHTML = html;
-			const newIframe = temp.querySelector('iframe');
-			if (!newIframe) return;
-
-			wrapper.innerHTML = '';
-			wrapper.appendChild(newIframe);
-			configureIframe(newIframe);
-		};
-
-		/**
 		 * Fetch and update embed based on container width
 		 */
 		const fetchAndUpdate = () => {
 			const width = getWrapperWidth();
 			if (width <= 0) return;
 
-			const fetchSize = getFetchSize(width);
+			const fetchSize = BREAKPOINTS.find(bp => width <= bp) || EXTRA_LARGE_SIZE;
 
 			// Only fetch if size changed
 			if (fetchSize === currentFetchSize) return;
@@ -107,7 +77,25 @@
 				.then((res) => res.ok ? res.json() : Promise.reject(new Error('Request failed')))
 				.then((data) => data.html || null)
 				.catch((err) => { console.warn('oEmbed fetch failed:', err); return null; })
-				.then((html) => html && replaceIframe(html));
+				.then((html) => {
+					if (!html) return;
+
+					// Parse HTML and replace iframe
+					const temp = document.createElement('div');
+					temp.innerHTML = html;
+					const newIframe = temp.querySelector('iframe');
+					if (!newIframe) return;
+
+					wrapper.innerHTML = '';
+					wrapper.appendChild(newIframe);
+
+					// Configure iframe
+					newIframe.removeAttribute('width');
+					newIframe.removeAttribute('height');
+					newIframe.style.position = 'absolute';
+					newIframe.style.width = '100%';
+					newIframe.style.height = '100%';
+				});
 		};
 
 		// Initial setup
