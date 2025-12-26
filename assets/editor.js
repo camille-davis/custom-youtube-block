@@ -1,5 +1,5 @@
 /**
- * Editor JavaScript for Fullsize YouTube Embeds
+ * Editor JavaScript for Fullwidth YouTube Embeds
  *
  * Adds a toggle control to YouTube embed blocks in the editor.
  */
@@ -13,17 +13,17 @@
 	const ToggleControl = wp.components.ToggleControl;
 	const addFilter = wp.hooks.addFilter;
 
-	// Register the fullsize attribute (client-side)
-	addFilter('blocks.registerBlockType', 'fullsize-youtube-embeds/add-attribute', (settings, name) => {
+	// Register the fullwidth attribute (client-side)
+	addFilter('blocks.registerBlockType', 'fullwidth-youtube-embeds/add-attribute', (settings, name) => {
 		if (name === 'core/embed') {
 			settings.attributes = settings.attributes || {};
-			settings.attributes.fullsize = { type: 'boolean', default: false };
+			settings.attributes.fullwidth = { type: 'boolean', default: false };
 		}
 		return settings;
 	});
 
-	// Add fullsize toggle to YouTube embed blocks
-	addFilter('editor.BlockEdit', 'fullsize-youtube-embeds/add-toggle', (BlockEdit) => (props) => {
+	// Add fullwidth toggle to YouTube embed blocks
+	addFilter('editor.BlockEdit', 'fullwidth-youtube-embeds/add-toggle', (BlockEdit) => (props) => {
 		if (props.name !== 'core/embed') return el(BlockEdit, props);
 
 		const { attributes, setAttributes } = props;
@@ -35,12 +35,12 @@
 		return el(Fragment, {},
 			el(BlockEdit, props),
 			el(InspectorControls, {},
-				el(PanelBody, { title: __('YouTube Settings', 'fullsize-youtube-embeds') },
+				el(PanelBody, { title: __('YouTube Settings', 'fullwidth-youtube-embeds') },
 					el(ToggleControl, {
-						label: __('Fullsize', 'fullsize-youtube-embeds'),
-						help: __('Make youtube video fullsize.', 'fullsize-youtube-embeds'),
-						checked: attributes.fullsize,
-						onChange: (value) => setAttributes({ fullsize: value })
+						label: __('Fullwidth', 'fullwidth-youtube-embeds'),
+						help: __('Make youtube video fullwidth.', 'fullwidth-youtube-embeds'),
+						checked: attributes.fullwidth,
+						onChange: (value) => setAttributes({ fullwidth: value })
 					})
 				)
 			)

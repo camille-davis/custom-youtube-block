@@ -1,13 +1,13 @@
 /**
- * Frontend JavaScript for Fullsize YouTube Embeds
+ * Frontend JavaScript for Fullwidth YouTube Embeds
  *
- * Only applies to YouTube embed blocks with fullsize attribute enabled.
+ * Only applies to YouTube embed blocks with fullwidth attribute enabled.
  */
 
 (function() {
 
 	const ASPECT_RATIO = 0.5625; // 16:9
-	const PROXY_URL = window.fullsizeYouTubeSettings.restUrl || '/wp-json/oembed/1.0/proxy';
+	const PROXY_URL = window.fullwidthYouTubeSettings.restUrl || '/wp-json/oembed/1.0/proxy';
 	const BREAKPOINTS = [640, 1024, 1920];
 	const EXTRA_LARGE_SIZE = 2560;
 
@@ -110,7 +110,7 @@
 	};
 
 	document.addEventListener('DOMContentLoaded', () => {
-		document.querySelectorAll('.has-fullsize-youtube').forEach(processEmbed);
+		document.querySelectorAll('.has-fullwidth-youtube').forEach(processEmbed);
 	});
 
 })();

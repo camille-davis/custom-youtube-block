@@ -1,12 +1,12 @@
 <?php
 /**
- * Plugin Name: Fullsize Option for YouTube Embeds
- * Plugin URI: https://github.com/camilledavis/fullsize-youtube-embeds
- * Description: Adds a fullsize toggle option to YouTube embed blocks.
+ * Plugin Name: Fullwidth Option for YouTube Embeds
+ * Plugin URI: https://github.com/camilledavis/fullwidth-youtube-embeds
+ * Description: Adds a fullwidth toggle option to YouTube embed blocks.
  * Version: 1.0.0
  * Author: Camille Davis
  * License: GPL-2.0-or-later
- * Text Domain: fullsize-youtube-embeds
+ * Text Domain: fullwidth-youtube-embeds
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -16,7 +16,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Main plugin class
  */
-class Fullsize_YouTube_Embeds {
+class Fullwidth_YouTube_Embeds {
 
 	/**
 	 * Plugin version
@@ -24,11 +24,11 @@ class Fullsize_YouTube_Embeds {
 	const VERSION = '1.0.0';
 
 	/**
-	 * Flag to track if fullsize YouTube embed was found during rendering.
+	 * Flag to track if fullwidth YouTube embed was found during rendering.
 	 *
 	 * @var bool
 	 */
-	private static $found_fullsize_youtube = false;
+	private static $found_fullwidth_youtube = false;
 
 	/**
 	 * Constructor
@@ -43,7 +43,7 @@ class Fullsize_YouTube_Embeds {
 	public function init() {
 
 		// Block registration and rendering
-		add_filter( 'block_type_metadata_settings', array( $this, 'add_fullsize_attribute' ), 10, 2 );
+		add_filter( 'block_type_metadata_settings', array( $this, 'add_fullwidth_attribute' ), 10, 2 );
 		add_filter( 'render_block_core/embed', array( $this, 'render_embed_block' ), 10, 2 );
 
 		// Make oEmbed proxy endpoint public for YouTube URLs
@@ -62,18 +62,18 @@ class Fullsize_YouTube_Embeds {
 	// ============================================================================
 
 	/**
-	 * Add fullsize attribute to Embed blocks.
+	 * Add fullwidth attribute to Embed blocks.
 	 *
 	 * @param array $settings Block settings.
 	 * @param array $metadata Block metadata.
 	 * @return array Modified settings.
 	 */
-	public function add_fullsize_attribute( $settings, $metadata ) {
+	public function add_fullwidth_attribute( $settings, $metadata ) {
 		if ( 'core/embed' !== $metadata['name'] ) {
 			return $settings;
 		}
 
-		$settings['attributes']['fullsize'] = array(
+		$settings['attributes']['fullwidth'] = array(
 			'type'    => 'boolean',
 			'default' => false,
 		);
@@ -82,7 +82,7 @@ class Fullsize_YouTube_Embeds {
 	}
 
 	/**
-	 * Filter embed block output to add fullsize class
+	 * Filter embed block output to add fullwidth class
 	 *
 	 * Also sets flag for late-stage script enqueuing if needed.
 	 *
@@ -92,18 +92,18 @@ class Fullsize_YouTube_Embeds {
 	 */
 	public function render_embed_block( $block_content, $block ) {
 
-		// Only process YouTube embeds with fullsize enabled
-		if ( ! isset( $block['attrs'] ) || ! isset( $block['attrs']['fullsize'] ) || ! $block['attrs']['fullsize'] || ! $this->is_youtube_embed( $block['attrs'] ) ) {
+		// Only process YouTube embeds with fullwidth enabled
+		if ( ! isset( $block['attrs'] ) || ! isset( $block['attrs']['fullwidth'] ) || ! $block['attrs']['fullwidth'] || ! $this->is_youtube_embed( $block['attrs'] ) ) {
 			return $block_content;
 		}
 
 		// Set flag for late-stage enqueue (handles widgets, reusable blocks, etc.)
-		self::$found_fullsize_youtube = true;
+		self::$found_fullwidth_youtube = true;
 
 		// Add class and data attribute to the figure element
 		$block_content = preg_replace(
 			'/(<figure[^>]*class="[^"]*wp-block-embed[^"]*)(")/',
-			'$1 has-fullsize-youtube$2 data-fullsize="true"',
+			'$1 has-fullwidth-youtube$2 data-fullwidth="true"',
 			$block_content,
 			1
 		);
@@ -133,9 +133,9 @@ class Fullsize_YouTube_Embeds {
 			return $result;
 		}
 
-		// Check if it's a YouTube URL
+		// Validate YouTube URL with strict hostname check
 		$url = $request->get_param( 'url' );
-		if ( ! $url || ( false === strpos( $url, 'youtube.com' ) && false === strpos( $url, 'youtu.be' ) ) ) {
+		if ( ! $url || ! $this->is_valid_youtube_url( $url ) ) {
 			return $result;
 		}
 
@@ -152,6 +152,34 @@ class Fullsize_YouTube_Embeds {
 		return $result;
 	}
 
+	/**
+	 * Validate that URL is a legitimate YouTube URL
+	 *
+	 * Prevents SSRF attacks by strictly validating the hostname.
+	 *
+	 * @param string $url The URL to validate.
+	 * @return bool True if valid YouTube URL, false otherwise.
+	 */
+	private function is_valid_youtube_url( $url ) {
+		$parsed = wp_parse_url( $url );
+
+		// Must have valid scheme and host
+		if ( ! $parsed || empty( $parsed['host'] ) ) {
+			return false;
+		}
+
+		// Only allow http/https
+		if ( ! empty( $parsed['scheme'] ) && ! in_array( strtolower( $parsed['scheme'] ), array( 'http', 'https' ), true ) ) {
+			return false;
+		}
+
+		// Strictly validate hostname (prevents SSRF)
+		$host = strtolower( $parsed['host'] );
+		$allowed_hosts = array( 'youtube.com', 'www.youtube.com', 'youtu.be' );
+
+		return in_array( $host, $allowed_hosts, true );
+	}
+
 	// ============================================================================
 	// Editor Assets
 	// ============================================================================
@@ -161,7 +189,7 @@ class Fullsize_YouTube_Embeds {
 	 */
 	public function enqueue_editor_assets() {
 		wp_enqueue_script(
-			'fullsize-youtube-embeds-editor',
+			'fullwidth-youtube-embeds-editor',
 			plugins_url( 'assets/editor.js', __FILE__ ),
 			array( 'wp-blocks', 'wp-element', 'wp-block-editor', 'wp-components', 'wp-i18n', 'wp-hooks' ),
 			self::VERSION,
@@ -177,11 +205,11 @@ class Fullsize_YouTube_Embeds {
 	 * Early detection: Check post content and enqueue if found
 	 *
 	 * Runs during wp_enqueue_scripts hook (before blocks render).
-	 * Checks the main post content for YouTube embeds with fullsize enabled.
+	 * Checks the main post content for YouTube embeds with fullwidth enabled.
 	 * This catches most cases efficiently.
 	 */
 	public function enqueue_frontend_assets_early() {
-		if ( $this->has_fullsize_youtube_in_post() ) {
+		if ( $this->has_fullwidth_youtube_in_post() ) {
 			$this->enqueue_frontend_script();
 		}
 	}
@@ -197,7 +225,7 @@ class Fullsize_YouTube_Embeds {
 	 * - Any other context not in main post content
 	 */
 	public function enqueue_frontend_assets_late() {
-		if ( self::$found_fullsize_youtube ) {
+		if ( self::$found_fullwidth_youtube ) {
 			$this->enqueue_frontend_script();
 		}
 	}
@@ -211,12 +239,12 @@ class Fullsize_YouTube_Embeds {
 	private function enqueue_frontend_script() {
 
 		// Prevent duplicate enqueues
-		if ( wp_script_is( 'fullsize-youtube-embeds-frontend', 'enqueued' ) ) {
+		if ( wp_script_is( 'fullwidth-youtube-embeds-frontend', 'enqueued' ) ) {
 			return;
 		}
 
 		wp_enqueue_script(
-			'fullsize-youtube-embeds-frontend',
+			'fullwidth-youtube-embeds-frontend',
 			plugins_url( 'assets/frontend.js', __FILE__ ),
 			array(),
 			self::VERSION,
@@ -224,8 +252,8 @@ class Fullsize_YouTube_Embeds {
 		);
 
 		wp_localize_script(
-			'fullsize-youtube-embeds-frontend',
-			'fullsizeYouTubeSettings',
+			'fullwidth-youtube-embeds-frontend',
+			'fullwidthYouTubeSettings',
 			array(
 				'restUrl' => rest_url( 'oembed/1.0/proxy' ),
 			)
@@ -237,35 +265,35 @@ class Fullsize_YouTube_Embeds {
 	// ============================================================================
 
 	/**
-	 * Check if current page has YouTube embed with fullsize enabled in post content
+	 * Check if current page has YouTube embed with fullwidth enabled in post content
 	 *
 	 * @return bool True if found, false otherwise.
 	 */
-	private function has_fullsize_youtube_in_post() {
+	private function has_fullwidth_youtube_in_post() {
 		global $post;
 		if ( ! $post || ! has_block( 'core/embed', $post ) ) {
 			return false;
 		}
 
 		$blocks = parse_blocks( $post->post_content );
-		return ! empty( $blocks ) && $this->check_blocks_for_fullsize_youtube( $blocks );
+		return ! empty( $blocks ) && $this->check_blocks_for_fullwidth_youtube( $blocks );
 	}
 
 	/**
-	 * Recursively check blocks for YouTube embed with fullsize enabled
+	 * Recursively check blocks for YouTube embed with fullwidth enabled
 	 *
 	 * @param array $blocks Array of block data.
 	 * @return bool True if found, false otherwise.
 	 */
-	private function check_blocks_for_fullsize_youtube( $blocks ) {
+	private function check_blocks_for_fullwidth_youtube( $blocks ) {
 		foreach ( $blocks as $block ) {
 			if ( isset( $block['blockName'] ) && 'core/embed' === $block['blockName']
-				&& isset( $block['attrs']['fullsize'] ) && $block['attrs']['fullsize']
+				&& isset( $block['attrs']['fullwidth'] ) && $block['attrs']['fullwidth']
 				&& $this->is_youtube_embed( $block['attrs'] ) ) {
 				return true;
 			}
 
-			if ( ! empty( $block['innerBlocks'] ) && $this->check_blocks_for_fullsize_youtube( $block['innerBlocks'] ) ) {
+			if ( ! empty( $block['innerBlocks'] ) && $this->check_blocks_for_fullwidth_youtube( $block['innerBlocks'] ) ) {
 				return true;
 			}
 		}
@@ -288,4 +316,4 @@ class Fullsize_YouTube_Embeds {
 	}
 }
 
-new Fullsize_YouTube_Embeds();
+new Fullwidth_YouTube_Embeds();
