@@ -40,8 +40,7 @@
 		const iframe = embedBlock.querySelector('iframe');
 		if (!iframe) return;
 
-		const match = iframe.src.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\n?#]+)/);
-		const videoId = match ? match[1] : null;
+		const videoId = extractVideoId(iframe.src);
 		if (!videoId) return;
 
 		const url = 'https://www.youtube.com/watch?v=' + videoId;
@@ -122,7 +121,7 @@
 
 	document.addEventListener('DOMContentLoaded', () => {
 		document.querySelectorAll('.has-fullwidth-youtube').forEach(processFullwidthEmbed);
-		document.querySelectorAll('.has-autoplay-youtube:not(.has-fullwidth-youtube), .has-hide-controls-youtube:not(.has-fullwidth-youtube), .has-loop-youtube:not(.has-fullwidth-youtube)').forEach(processCustomParamsEmbed);
+		document.querySelectorAll('[class*="has-"][class*="-youtube"]:not(.has-fullwidth-youtube)').forEach(processCustomParamsEmbed);
 	});
 
 })();

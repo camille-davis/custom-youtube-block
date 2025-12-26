@@ -58,27 +58,21 @@ class Custom_YouTube_Block_Renderer {
 
 		self::$found_custom_youtube = true;
 
+		$feature_map = array(
+			'fullwidth'    => 'fullwidth',
+			'autoplay'     => 'autoplay',
+			'hideControls' => 'hide-controls',
+			'loop'         => 'loop',
+		);
+
 		$classes = array();
 		$data_attrs = array();
 
-		if ( $features['fullwidth'] ) {
-			$classes[] = 'has-fullwidth-youtube';
-			$data_attrs[] = 'data-fullwidth="true"';
-		}
-
-		if ( $features['autoplay'] ) {
-			$classes[] = 'has-autoplay-youtube';
-			$data_attrs[] = 'data-autoplay="true"';
-		}
-
-		if ( $features['hideControls'] ) {
-			$classes[] = 'has-hide-controls-youtube';
-			$data_attrs[] = 'data-hide-controls="true"';
-		}
-
-		if ( $features['loop'] ) {
-			$classes[] = 'has-loop-youtube';
-			$data_attrs[] = 'data-loop="true"';
+		foreach ( $feature_map as $feature_key => $feature_slug ) {
+			if ( $features[ $feature_key ] ) {
+				$classes[] = 'has-' . $feature_slug . '-youtube';
+				$data_attrs[] = 'data-' . $feature_slug . '="true"';
+			}
 		}
 
 		$class_string = implode( ' ', $classes );

@@ -1030,19 +1030,128 @@ newIframe.src = applyYouTubeParams(newIframe.src, embedBlock);
 
 **Impact:** Cleaner code, easier to maintain, less repetition
 
+### 55. Eliminated Duplicate Video ID Extraction
+**When adding loop feature:**
+
+**Before:** Video ID extraction duplicated in multiple places
+```javascript
+const match = iframe.src.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\n?#]+)/);
+const videoId = match ? match[1] : null;
+// ... used in processFullwidthEmbed
+
+// Same pattern duplicated elsewhere
+```
+
+**After:** Single reusable helper function
+```javascript
+const extractVideoId = (src) => {
+    const match = src.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\n?#]+)/);
+    return match ? match[1] : null;
+};
+// Used everywhere video ID is needed
+```
+
+**Impact:** DRY principle, single source of truth, easier to maintain
+
+### 56. Simplified Selector for Custom Parameters
+**When adding multiple features:**
+
+**Before:** Long explicit selector listing each feature
+```javascript
+document.querySelectorAll('.has-autoplay-youtube:not(.has-fullwidth-youtube), .has-hide-controls-youtube:not(.has-fullwidth-youtube), .has-loop-youtube:not(.has-fullwidth-youtube)')
+```
+
+**After:** Generic attribute-based selector
+```javascript
+document.querySelectorAll('[class*="has-"][class*="-youtube"]:not(.has-fullwidth-youtube)')
+```
+
+**Impact:** Automatically handles new features, no need to update selector when adding features
+
+### 57. Array-Based Feature-to-Class Mapping
+**When expanding features:**
+
+**Before:** Repetitive if statements for each feature
+```php
+if ( $features['fullwidth'] ) {
+    $classes[] = 'has-fullwidth-youtube';
+    $data_attrs[] = 'data-fullwidth="true"';
+}
+if ( $features['autoplay'] ) {
+    $classes[] = 'has-autoplay-youtube';
+    $data_attrs[] = 'data-autoplay="true"';
+}
+// ... repeated for each feature
+```
+
+**After:** Loop-based mapping array
+```php
+$feature_map = array(
+    'fullwidth'    => 'fullwidth',
+    'autoplay'     => 'autoplay',
+    'hideControls' => 'hide-controls',
+    'loop'         => 'loop',
+);
+
+foreach ( $feature_map as $feature_key => $feature_slug ) {
+    if ( $features[ $feature_key ] ) {
+        $classes[] = 'has-' . $feature_slug . '-youtube';
+        $data_attrs[] = 'data-' . $feature_slug . '="true"';
+    }
+}
+```
+
+**Impact:** Easy to add new features (just add to array), less code, more maintainable
+
+### 58. Array-Based Toggle Control Generation
+**When adding multiple toggles:**
+
+**Before:** Repetitive ToggleControl elements
+```javascript
+el(ToggleControl, {
+    label: __('Fullwidth', 'custom-youtube-block'),
+    help: __('Make youtube video fullwidth.', 'custom-youtube-block'),
+    checked: attributes.fullwidth,
+    onChange: (value) => setAttributes({ fullwidth: value })
+}),
+el(ToggleControl, {
+    label: __('Autoplay', 'custom-youtube-block'),
+    // ... repeated for each toggle
+})
+```
+
+**After:** Array-based generation
+```javascript
+const toggles = [
+    { key: 'fullwidth', label: __('Fullwidth', 'custom-youtube-block'), help: __('...', 'custom-youtube-block') },
+    { key: 'autoplay', label: __('Autoplay', 'custom-youtube-block'), help: __('...', 'custom-youtube-block') },
+    // ...
+];
+
+const toggleControls = toggles.map(toggle => el(ToggleControl, {
+    key: toggle.key,
+    label: toggle.label,
+    help: toggle.help,
+    checked: attributes[toggle.key],
+    onChange: (value) => setAttributes({ [toggle.key]: value })
+}));
+```
+
+**Impact:** Easy to add new toggles, consistent structure, less repetition
+
 ---
 
 ## Summary Statistics
 
-- **Total Simplifications:** 54 distinct improvements
-- **Lines Removed:** ~250+ lines of code eliminated
+- **Total Simplifications:** 58 distinct improvements
+- **Lines Removed:** ~300+ lines of code eliminated
 - **Build Dependencies:** Removed entirely (npm, webpack, babel)
 - **Functions Consolidated:** 2 parameter functions → 1 unified function
 - **Functions Inlined:** 8+ single-use functions
-- **Redundant Code Removed:** 20+ instances
+- **Redundant Code Removed:** 25+ instances
 - **Security Improvements:** 2 major enhancements
 - **Performance Optimizations:** 4 significant improvements
-- **Feature Expansion:** 3 patterns established for easy extension
+- **Feature Expansion:** 6 patterns established for easy extension
 
 ---
 
@@ -1072,6 +1181,9 @@ newIframe.src = applyYouTubeParams(newIframe.src, embedBlock);
 8. **Removing unused code** is as important as adding new features
 9. **Unified functions** scale better than separate functions per feature
 10. **Array-based patterns** make feature expansion easier and more maintainable
+11. **Reusable helper functions** eliminate duplication and create single sources of truth
+12. **Generic selectors** automatically handle new features without code changes
+13. **Data-driven approaches** (arrays, maps) reduce repetition and improve maintainability
 
 ---
 

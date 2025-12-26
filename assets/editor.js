@@ -35,34 +35,42 @@
 
 		if (!isYouTube) return el(BlockEdit, props);
 
+		const toggles = [
+			{
+				key: 'fullwidth',
+				label: __('Fullwidth', 'custom-youtube-block'),
+				help: __('Make youtube video fullwidth.', 'custom-youtube-block')
+			},
+			{
+				key: 'autoplay',
+				label: __('Autoplay', 'custom-youtube-block'),
+				help: __('Automatically play the video when the page loads. Video will be muted.', 'custom-youtube-block')
+			},
+			{
+				key: 'hideControls',
+				label: __('Hide Controls', 'custom-youtube-block'),
+				help: __('Remove video player controls from the YouTube embed.', 'custom-youtube-block')
+			},
+			{
+				key: 'loop',
+				label: __('Loop Video', 'custom-youtube-block'),
+				help: __('Make the video loop continuously when it reaches the end.', 'custom-youtube-block')
+			}
+		];
+
+		const toggleControls = toggles.map(toggle => el(ToggleControl, {
+			key: toggle.key,
+			label: toggle.label,
+			help: toggle.help,
+			checked: attributes[toggle.key],
+			onChange: (value) => setAttributes({ [toggle.key]: value })
+		}));
+
 		return el(Fragment, {},
 			el(BlockEdit, props),
 			el(InspectorControls, {},
 				el(PanelBody, { title: __('YouTube Settings', 'custom-youtube-block') },
-					el(ToggleControl, {
-						label: __('Fullwidth', 'custom-youtube-block'),
-						help: __('Make youtube video fullwidth.', 'custom-youtube-block'),
-						checked: attributes.fullwidth,
-						onChange: (value) => setAttributes({ fullwidth: value })
-					}),
-					el(ToggleControl, {
-						label: __('Autoplay', 'custom-youtube-block'),
-						help: __('Automatically play the video when the page loads. Video will be muted.', 'custom-youtube-block'),
-						checked: attributes.autoplay,
-						onChange: (value) => setAttributes({ autoplay: value })
-					}),
-					el(ToggleControl, {
-						label: __('Hide Controls', 'custom-youtube-block'),
-						help: __('Remove video player controls from the YouTube embed.', 'custom-youtube-block'),
-						checked: attributes.hideControls,
-						onChange: (value) => setAttributes({ hideControls: value })
-					}),
-					el(ToggleControl, {
-						label: __('Loop Video', 'custom-youtube-block'),
-						help: __('Make the video loop continuously when it reaches the end.', 'custom-youtube-block'),
-						checked: attributes.loop,
-						onChange: (value) => setAttributes({ loop: value })
-					})
+					toggleControls
 				)
 			)
 		);
