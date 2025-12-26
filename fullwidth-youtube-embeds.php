@@ -163,21 +163,18 @@ class Fullwidth_YouTube_Embeds {
 	private function is_valid_youtube_url( $url ) {
 		$parsed = wp_parse_url( $url );
 
-		// Must have valid scheme and host
 		if ( ! $parsed || empty( $parsed['host'] ) ) {
 			return false;
 		}
 
-		// Only allow http/https
+		// Only allow http/https schemes
 		if ( ! empty( $parsed['scheme'] ) && ! in_array( strtolower( $parsed['scheme'] ), array( 'http', 'https' ), true ) ) {
 			return false;
 		}
 
 		// Strictly validate hostname (prevents SSRF)
 		$host = strtolower( $parsed['host'] );
-		$allowed_hosts = array( 'youtube.com', 'www.youtube.com', 'youtu.be' );
-
-		return in_array( $host, $allowed_hosts, true );
+		return in_array( $host, array( 'youtube.com', 'www.youtube.com', 'youtu.be' ), true );
 	}
 
 	// ============================================================================
