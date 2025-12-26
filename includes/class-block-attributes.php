@@ -35,30 +35,13 @@ class Custom_YouTube_Block_Attributes {
 			return $settings;
 		}
 
-		$settings['attributes']['fullwidth'] = array(
-			'type'    => 'boolean',
-			'default' => false,
-		);
-
-		$settings['attributes']['autoplay'] = array(
-			'type'    => 'boolean',
-			'default' => false,
-		);
-
-		$settings['attributes']['hideControls'] = array(
-			'type'    => 'boolean',
-			'default' => false,
-		);
-
-		$settings['attributes']['loop'] = array(
-			'type'    => 'boolean',
-			'default' => false,
-		);
-
-		$settings['attributes']['disableMouseInteraction'] = array(
-			'type'    => 'boolean',
-			'default' => false,
-		);
+		$attributes = Custom_YouTube_Block_Feature_Registry::get_feature_keys();
+		foreach ( $attributes as $attr ) {
+			$settings['attributes'][ $attr ] = array(
+				'type'    => 'boolean',
+				'default' => false,
+			);
+		}
 
 		return $settings;
 	}

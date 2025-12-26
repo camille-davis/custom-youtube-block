@@ -45,37 +45,22 @@ class Custom_YouTube_Block_Renderer {
 		}
 
 		$attrs = $block['attrs'];
-		$features = array(
-			'fullwidth'              => isset( $attrs['fullwidth'] ) && $attrs['fullwidth'],
-			'autoplay'               => isset( $attrs['autoplay'] ) && $attrs['autoplay'],
-			'hideControls'           => isset( $attrs['hideControls'] ) && $attrs['hideControls'],
-			'loop'                   => isset( $attrs['loop'] ) && $attrs['loop'],
-			'disableMouseInteraction' => isset( $attrs['disableMouseInteraction'] ) && $attrs['disableMouseInteraction'],
-		);
+		$feature_map = Custom_YouTube_Block_Feature_Registry::get_feature_map();
 
-		if ( ! array_filter( $features ) ) {
+		$classes = array();
+		$data_attrs = array();
+		foreach ( $feature_map as $key => $slug ) {
+			if ( ! empty( $attrs[ $key ] ) ) {
+				$classes[] = 'has-' . $slug . '-youtube';
+				$data_attrs[] = 'data-' . $slug . '="true"';
+			}
+		}
+
+		if ( empty( $classes ) ) {
 			return $block_content;
 		}
 
 		self::$found_custom_youtube = true;
-
-		$feature_map = array(
-			'fullwidth'              => 'fullwidth',
-			'autoplay'               => 'autoplay',
-			'hideControls'           => 'hide-controls',
-			'loop'                   => 'loop',
-			'disableMouseInteraction' => 'disable-mouse-interaction',
-		);
-
-		$classes = array();
-		$data_attrs = array();
-
-		foreach ( $feature_map as $feature_key => $feature_slug ) {
-			if ( $features[ $feature_key ] ) {
-				$classes[] = 'has-' . $feature_slug . '-youtube';
-				$data_attrs[] = 'data-' . $feature_slug . '="true"';
-			}
-		}
 
 		$class_string = implode( ' ', $classes );
 		$data_string = ' ' . implode( ' ', $data_attrs );

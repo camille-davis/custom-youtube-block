@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Custom Youtube Block
  * Plugin URI: https://github.com/camilledavis/custom-youtube-block
- * Description: Adds fullwidth and autoplay toggle options to YouTube embed blocks.
+ * Description: Adds customizable options to YouTube embed blocks.
  * Version: 1.1.0
  * Author: Camille Davis
  * License: GPL-2.0-or-later
@@ -44,6 +44,7 @@ class Custom_YouTube_Block {
 	 */
 	private function load_dependencies() {
 		require_once plugin_dir_path( $this->plugin_file ) . 'includes/class-youtube-helper.php';
+		require_once plugin_dir_path( $this->plugin_file ) . 'includes/class-feature-registry.php';
 		require_once plugin_dir_path( $this->plugin_file ) . 'includes/class-block-attributes.php';
 		require_once plugin_dir_path( $this->plugin_file ) . 'includes/class-block-renderer.php';
 		require_once plugin_dir_path( $this->plugin_file ) . 'includes/class-rest-api.php';
@@ -54,7 +55,6 @@ class Custom_YouTube_Block {
 	 * Initialize plugin
 	 */
 	private function init() {
-		// Initialize component classes
 		new Custom_YouTube_Block_Attributes();
 		new Custom_YouTube_Block_Renderer();
 		new Custom_YouTube_Block_REST_API();

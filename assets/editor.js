@@ -13,15 +13,16 @@
 	const ToggleControl = wp.components.ToggleControl;
 	const addFilter = wp.hooks.addFilter;
 
+	// Get features from localized data (fallback to empty array if not available)
+	const features = (window.customYouTubeBlock && window.customYouTubeBlock.features) || [];
+
 	// Register custom attributes (client-side)
 	addFilter('blocks.registerBlockType', 'custom-youtube-block/add-attribute', (settings, name) => {
 		if (name === 'core/embed') {
 			settings.attributes = settings.attributes || {};
-			settings.attributes.fullwidth = { type: 'boolean', default: false };
-			settings.attributes.autoplay = { type: 'boolean', default: false };
-			settings.attributes.hideControls = { type: 'boolean', default: false };
-			settings.attributes.loop = { type: 'boolean', default: false };
-			settings.attributes.disableMouseInteraction = { type: 'boolean', default: false };
+			features.forEach(feature => {
+				settings.attributes[feature.key] = { type: 'boolean', default: false };
+			});
 		}
 		return settings;
 	});
@@ -31,40 +32,15 @@
 		if (props.name !== 'core/embed') return el(BlockEdit, props);
 
 		const { attributes, setAttributes } = props;
+
+		// Check if this is a YouTube embed (consistent with PHP helper logic)
 		const isYouTube = attributes.providerNameSlug === 'youtube' ||
-			(attributes.url && (attributes.url.includes('youtube.com') || attributes.url.includes('youtu.be')));
+			(attributes.url && typeof attributes.url === 'string' &&
+				(attributes.url.indexOf('youtube.com') !== -1 || attributes.url.indexOf('youtu.be') !== -1));
 
 		if (!isYouTube) return el(BlockEdit, props);
 
-		const toggles = [
-			{
-				key: 'fullwidth',
-				label: __('Fullwidth', 'custom-youtube-block'),
-				help: __('Make youtube video fullwidth.', 'custom-youtube-block')
-			},
-			{
-				key: 'autoplay',
-				label: __('Autoplay', 'custom-youtube-block'),
-				help: __('Automatically play the video when the page loads. Video will be muted.', 'custom-youtube-block')
-			},
-			{
-				key: 'hideControls',
-				label: __('Hide Controls', 'custom-youtube-block'),
-				help: __('Remove video player controls from the YouTube embed.', 'custom-youtube-block')
-			},
-			{
-				key: 'loop',
-				label: __('Loop Video', 'custom-youtube-block'),
-				help: __('Make the video loop continuously when it reaches the end.', 'custom-youtube-block')
-			},
-			{
-				key: 'disableMouseInteraction',
-				label: __('Disable Mouse Interaction', 'custom-youtube-block'),
-				help: __('Prevent all mouse interactions with the video player, including pause on click. Warning: This blocks all user interactions.', 'custom-youtube-block')
-			}
-		];
-
-		const toggleControls = toggles.map(toggle => el(ToggleControl, {
+		const toggleControls = features.map(toggle => el(ToggleControl, {
 			key: toggle.key,
 			label: toggle.label,
 			help: toggle.help,

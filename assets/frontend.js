@@ -1,7 +1,7 @@
 /**
  * Frontend JavaScript for Custom YouTube Block
  *
- * Handles fullwidth, autoplay, hide controls, loop, and mouse interaction features.
+ * Handles fullwidth, autoplay, hide controls, loop, hide related videos, and interaction disabling features.
  */
 
 (function() {
@@ -35,11 +35,17 @@
 				url.searchParams.set('playlist', videoId);
 			}
 		}
+		if (getDataAttribute(embedBlock, 'data-disable-interaction')) {
+			url.searchParams.set('disablekb', '1');
+		}
+		if (getDataAttribute(embedBlock, 'data-hide-related-videos')) {
+			url.searchParams.set('rel', '0');
+		}
 		return url.toString();
 	};
 
 	const applyIframeStyles = (iframe, embedBlock) => {
-		if (getDataAttribute(embedBlock, 'data-disable-mouse-interaction')) {
+		if (getDataAttribute(embedBlock, 'data-disable-interaction')) {
 			iframe.style.pointerEvents = 'none';
 		}
 	};
