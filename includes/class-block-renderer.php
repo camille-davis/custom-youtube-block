@@ -40,7 +40,6 @@ class Custom_YouTube_Block_Renderer {
 	 * @return string Modified block content.
 	 */
 	public function render_embed_block( $block_content, $block ) {
-		// Only process YouTube embeds
 		if ( ! isset( $block['attrs'] ) || ! Custom_YouTube_Block_Helper::is_youtube_embed( $block['attrs'] ) ) {
 			return $block_content;
 		}
@@ -49,15 +48,12 @@ class Custom_YouTube_Block_Renderer {
 		$has_fullwidth = isset( $attrs['fullwidth'] ) && $attrs['fullwidth'];
 		$has_autoplay = isset( $attrs['autoplay'] ) && $attrs['autoplay'];
 
-		// If no custom attributes are enabled, return early
 		if ( ! $has_fullwidth && ! $has_autoplay ) {
 			return $block_content;
 		}
 
-		// Set flag for late-stage enqueue (handles widgets, reusable blocks, etc.)
 		self::$found_custom_youtube = true;
 
-		// Build classes and data attributes
 		$classes = array();
 		$data_attrs = array();
 
@@ -71,17 +67,14 @@ class Custom_YouTube_Block_Renderer {
 			$data_attrs[] = 'data-autoplay="true"';
 		}
 
-		// Add classes and data attributes to the figure element
-		if ( ! empty( $classes ) ) {
-			$class_string = implode( ' ', $classes );
-			$data_string = ! empty( $data_attrs ) ? ' ' . implode( ' ', $data_attrs ) : '';
-			$block_content = preg_replace(
-				'/(<figure[^>]*class="[^"]*wp-block-embed[^"]*)(")/',
-				'$1 ' . esc_attr( $class_string ) . '$2' . $data_string,
-				$block_content,
-				1
-			);
-		}
+		$class_string = implode( ' ', $classes );
+		$data_string = ' ' . implode( ' ', $data_attrs );
+		$block_content = preg_replace(
+			'/(<figure[^>]*class="[^"]*wp-block-embed[^"]*)(")/',
+			'$1 ' . esc_attr( $class_string ) . '$2' . $data_string,
+			$block_content,
+			1
+		);
 
 		return $block_content;
 	}

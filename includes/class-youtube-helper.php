@@ -46,12 +46,10 @@ class Custom_YouTube_Block_Helper {
 			return false;
 		}
 
-		// Only allow http/https schemes
 		if ( ! empty( $parsed['scheme'] ) && ! in_array( strtolower( $parsed['scheme'] ), array( 'http', 'https' ), true ) ) {
 			return false;
 		}
 
-		// Strictly validate hostname (prevents SSRF)
 		$host = strtolower( $parsed['host'] );
 		return in_array( $host, array( 'youtube.com', 'www.youtube.com', 'youtu.be' ), true );
 	}
@@ -68,26 +66,15 @@ class Custom_YouTube_Block_Helper {
 			if ( isset( $block['blockName'] ) && 'core/embed' === $block['blockName']
 				&& self::is_youtube_embed( isset( $block['attrs'] ) ? $block['attrs'] : array() ) ) {
 
-				// Check if any of the specified attributes are enabled
-				if ( ! empty( $attributes ) ) {
-					$has_attribute = false;
-					foreach ( $attributes as $attr ) {
-						if ( isset( $block['attrs'][ $attr ] ) && $block['attrs'][ $attr ] ) {
-							$has_attribute = true;
-							break;
-						}
-					}
-					if ( ! $has_attribute ) {
-						if ( ! empty( $block['innerBlocks'] ) ) {
-							if ( self::check_blocks_for_youtube_with_attributes( $block['innerBlocks'], $attributes ) ) {
-								return true;
-							}
-						}
-						continue;
-					}
+				if ( empty( $attributes ) ) {
+					return true;
 				}
 
-				return true;
+				foreach ( $attributes as $attr ) {
+					if ( isset( $block['attrs'][ $attr ] ) && $block['attrs'][ $attr ] ) {
+						return true;
+					}
+				}
 			}
 
 			if ( ! empty( $block['innerBlocks'] ) && self::check_blocks_for_youtube_with_attributes( $block['innerBlocks'], $attributes ) ) {

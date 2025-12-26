@@ -40,13 +40,13 @@
 					el(ToggleControl, {
 						label: __('Fullwidth', 'custom-youtube-block'),
 						help: __('Make youtube video fullwidth.', 'custom-youtube-block'),
-						checked: attributes.fullwidth || false,
+						checked: attributes.fullwidth,
 						onChange: (value) => setAttributes({ fullwidth: value })
 					}),
 					el(ToggleControl, {
 						label: __('Autoplay', 'custom-youtube-block'),
 						help: __('Automatically play the video when the page loads. Video will be muted.', 'custom-youtube-block'),
-						checked: attributes.autoplay || false,
+						checked: attributes.autoplay,
 						onChange: (value) => setAttributes({ autoplay: value })
 					})
 				)

@@ -70,8 +70,6 @@ class Custom_YouTube_Block_Assets {
 	 * Early detection: Check post content and enqueue if found
 	 *
 	 * Runs during wp_enqueue_scripts hook (before blocks render).
-	 * Checks the main post content for YouTube embeds with custom attributes enabled.
-	 * This catches most cases efficiently.
 	 */
 	public function enqueue_frontend_assets_early() {
 		if ( $this->has_custom_youtube_in_post() ) {
@@ -83,11 +81,6 @@ class Custom_YouTube_Block_Assets {
 	 * Late detection: Check flag set during block rendering
 	 *
 	 * Runs during wp_print_scripts hook (after blocks render, before scripts output).
-	 * Uses the flag set by render_embed_block() to catch embeds in:
-	 * - Widgets
-	 * - Reusable blocks (synced patterns)
-	 * - Theme templates
-	 * - Any other context not in main post content
 	 */
 	public function enqueue_frontend_assets_late() {
 		if ( Custom_YouTube_Block_Renderer::get_found_flag() ) {
@@ -99,10 +92,8 @@ class Custom_YouTube_Block_Assets {
 	 * Enqueue frontend script and localize settings
 	 *
 	 * Shared method used by both early and late detection.
-	 * Includes safety check to prevent duplicate enqueues.
 	 */
 	private function enqueue_frontend_script() {
-		// Prevent duplicate enqueues
 		if ( wp_script_is( 'custom-youtube-block-frontend', 'enqueued' ) ) {
 			return;
 		}
