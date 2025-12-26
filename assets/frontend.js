@@ -42,15 +42,8 @@
 				const temp = document.createElement('div');
 				temp.innerHTML = html;
 				const newIframe = temp.querySelector('iframe');
-				if (!newIframe) return;
 
-				// Ensure wrapper exists
 				let wrapper = embedBlock.querySelector('.wp-block-embed__wrapper');
-				if (!wrapper) {
-					wrapper = document.createElement('div');
-					wrapper.className = 'wp-block-embed__wrapper';
-					embedBlock.insertBefore(wrapper, iframe);
-				}
 
 				// Replace old iframe with new one
 				wrapper.innerHTML = '';
