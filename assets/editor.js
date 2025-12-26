@@ -5,17 +5,16 @@
  */
 
 (function() {
-	'use strict';
+	const el = wp.element.createElement;
+	const __ = wp.i18n.__;
+	const Fragment = wp.element.Fragment;
+	const InspectorControls = wp.blockEditor.InspectorControls;
+	const PanelBody = wp.components.PanelBody;
+	const ToggleControl = wp.components.ToggleControl;
+	const addFilter = wp.hooks.addFilter;
 
-	var el = wp.element.createElement;
-	var __ = wp.i18n.__;
-	var InspectorControls = wp.blockEditor.InspectorControls;
-	var PanelBody = wp.components.PanelBody;
-	var ToggleControl = wp.components.ToggleControl;
-	var addFilter = wp.hooks.addFilter;
-
-	// Register the fullsize attribute
-	addFilter('blocks.registerBlockType', 'fullsize-youtube-embeds/add-attribute', function(settings, name) {
+	// Register the fullsize attribute (client-side)
+	addFilter('blocks.registerBlockType', 'fullsize-youtube-embeds/add-attribute', (settings, name) => {
 		if (name === 'core/embed') {
 			settings.attributes = settings.attributes || {};
 			settings.attributes.fullsize = { type: 'boolean', default: false };
@@ -24,31 +23,28 @@
 	});
 
 	// Add fullsize toggle to YouTube embed blocks
-	addFilter('editor.BlockEdit', 'fullsize-youtube-embeds/add-toggle', function(BlockEdit) {
-		return function(props) {
-			if (props.name !== 'core/embed') return el(BlockEdit, props);
+	addFilter('editor.BlockEdit', 'fullsize-youtube-embeds/add-toggle', (BlockEdit) => (props) => {
+		if (props.name !== 'core/embed') return el(BlockEdit, props);
 
-			var attrs = props.attributes;
-			var isYouTube = attrs.providerNameSlug === 'youtube' ||
-			                (attrs.url && (attrs.url.indexOf('youtube.com') !== -1 || attrs.url.indexOf('youtu.be') !== -1));
+		const { attributes, setAttributes } = props;
+		const isYouTube = attributes.providerNameSlug === 'youtube' ||
+			(attributes.url && (attributes.url.includes('youtube.com') || attributes.url.includes('youtu.be')));
 
-			if (!isYouTube) return el(BlockEdit, props);
+		if (!isYouTube) return el(BlockEdit, props);
 
-			return el(wp.element.Fragment, {},
-				el(BlockEdit, props),
-				el(InspectorControls, {},
-					el(PanelBody, { title: __('YouTube Settings', 'fullsize-youtube-embeds') },
-						el(ToggleControl, {
-							label: __('Fullsize Mode', 'fullsize-youtube-embeds'),
-							help: __('Enable to make this embed dynamically resize to match its container width, just like in the editor.', 'fullsize-youtube-embeds'),
-							checked: !!attrs.fullsize,
-							onChange: function(value) { props.setAttributes({ fullsize: value }); }
-						})
-					)
+		return el(Fragment, {},
+			el(BlockEdit, props),
+			el(InspectorControls, {},
+				el(PanelBody, { title: __('YouTube Settings', 'fullsize-youtube-embeds') },
+					el(ToggleControl, {
+						label: __('Fullsize Mode', 'fullsize-youtube-embeds'),
+						help: __('Enable to make this embed dynamically resize to match its container width, just like in the editor.', 'fullsize-youtube-embeds'),
+						checked: attributes.fullsize,
+						onChange: (value) => setAttributes({ fullsize: value })
+					})
 				)
-			);
-		};
+			)
+		);
 	});
 
 })();
-
