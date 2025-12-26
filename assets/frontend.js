@@ -8,44 +8,8 @@
 
 	const ASPECT_RATIO = 0.5625; // 16:9
 	const PROXY_URL = window.fullsizeYouTubeSettings.restUrl || '/wp-json/oembed/1.0/proxy';
-
-	// Breakpoints and corresponding fetch sizes
-	const BREAKPOINTS = {
-		small: { max: 640, size: 640 },
-		medium: { max: 1024, size: 1024 },
-		large: { max: 1920, size: 1920 },
-		extraLarge: { max: Infinity, size: 2560 }
-	};
-
-	/**
-	 * Get breakpoint name for given width
-	 */
-	const getBreakpoint = (width) => {
-		if (width <= BREAKPOINTS.small.max) return 'small';
-		if (width <= BREAKPOINTS.medium.max) return 'medium';
-		if (width <= BREAKPOINTS.large.max) return 'large';
-		return 'extraLarge';
-	};
-
-	/**
-	 * Get fetch size for breakpoint
-	 */
-	const getFetchSize = (breakpoint) => BREAKPOINTS[breakpoint].size;
-
-	/**
-	 * Fetch oEmbed at specified size
-	 */
-	const fetchOEmbed = (url, width) => {
-		const params = new URLSearchParams({
-			url: url,
-			maxwidth: width,
-			maxheight: Math.ceil(width * ASPECT_RATIO)
-		});
-		return fetch(PROXY_URL + '?' + params.toString())
-			.then((res) => res.ok ? res.json() : Promise.reject(new Error('Request failed')))
-			.then((data) => data.html || null)
-			.catch((err) => { console.warn('oEmbed fetch failed:', err); return null; });
-	};
+	const BREAKPOINTS = [640, 1024, 1920];
+	const EXTRA_LARGE_SIZE = 2560;
 
 	/**
 	 * Process a single embed block
@@ -69,36 +33,8 @@
 			embedBlock.insertBefore(wrapper, iframe);
 		}
 
-		// Store original iframe for reference
-		const originalIframe = iframe;
-
-		// Track current breakpoint and fetch size
-		let currentBreakpoint = null;
+		// Track current fetch size
 		let currentFetchSize = null;
-
-		/**
-		 * Update embed with fetched HTML
-		 */
-		const updateEmbed = (html) => {
-			if (!html) return;
-
-			// Parse HTML to extract iframe
-			const temp = document.createElement('div');
-			temp.innerHTML = html;
-			const newIframe = temp.querySelector('iframe');
-			if (!newIframe) return;
-
-			// Replace iframe
-			wrapper.innerHTML = '';
-			wrapper.appendChild(newIframe);
-
-			// Configure iframe
-			newIframe.removeAttribute('width');
-			newIframe.removeAttribute('height');
-			newIframe.style.position = 'absolute';
-			newIframe.style.width = '100%';
-			newIframe.style.height = '100%';
-		};
 
 		/**
 		 * Fetch and update embed based on container width
@@ -107,16 +43,48 @@
 			const wrapperWidth = wrapper.getBoundingClientRect().width;
 			if (wrapperWidth <= 0) return;
 
-			const breakpoint = getBreakpoint(wrapperWidth);
-			const fetchSize = getFetchSize(breakpoint);
+			// Determine fetch size based on breakpoints
+			let fetchSize;
+			if (wrapperWidth <= BREAKPOINTS[0]) fetchSize = BREAKPOINTS[0];
+			else if (wrapperWidth <= BREAKPOINTS[1]) fetchSize = BREAKPOINTS[1];
+			else if (wrapperWidth <= BREAKPOINTS[2]) fetchSize = BREAKPOINTS[2];
+			else fetchSize = EXTRA_LARGE_SIZE;
 
-			// Only fetch if breakpoint changed
-			if (breakpoint === currentBreakpoint && fetchSize === currentFetchSize) return;
+			// Only fetch if size changed
+			if (fetchSize === currentFetchSize) return;
 
-			currentBreakpoint = breakpoint;
 			currentFetchSize = fetchSize;
 
-			fetchOEmbed(url, fetchSize).then(updateEmbed);
+			// Fetch oEmbed
+			const params = new URLSearchParams({
+				url: url,
+				maxwidth: fetchSize,
+				maxheight: Math.ceil(fetchSize * ASPECT_RATIO)
+			});
+			fetch(PROXY_URL + '?' + params.toString())
+				.then((res) => res.ok ? res.json() : Promise.reject(new Error('Request failed')))
+				.then((data) => data.html || null)
+				.catch((err) => { console.warn('oEmbed fetch failed:', err); return null; })
+				.then((html) => {
+					if (!html) return;
+
+					// Parse HTML to extract iframe
+					const temp = document.createElement('div');
+					temp.innerHTML = html;
+					const newIframe = temp.querySelector('iframe');
+					if (!newIframe) return;
+
+					// Replace iframe
+					wrapper.innerHTML = '';
+					wrapper.appendChild(newIframe);
+
+					// Configure iframe
+					newIframe.removeAttribute('width');
+					newIframe.removeAttribute('height');
+					newIframe.style.position = 'absolute';
+					newIframe.style.width = '100%';
+					newIframe.style.height = '100%';
+				});
 		};
 
 		// Configure wrapper
