@@ -10,7 +10,6 @@
 	var FETCH_SIZE = 1920; // Large enough for any screen
 
 	var ASPECT_RATIO = 0.5625; // 16:9
-	var DEBOUNCE_DELAY = 250;
 
 	var settings = window.fullsizeYouTubeSettings || {};
 	var proxyUrl = settings.restUrl || '/wp-json/oembed/1.0/proxy';
@@ -29,8 +28,12 @@
 	 * Fetch oEmbed at preset size
 	 */
 	function fetchOEmbed(url, width) {
-		var params = 'url=' + encodeURIComponent(url) + '&maxwidth=' + width + '&maxheight=' + Math.ceil(width * ASPECT_RATIO);
-		return fetch(proxyUrl + '?' + params)
+		var params = new URLSearchParams({
+			url: url,
+			maxwidth: width,
+			maxheight: Math.ceil(width * ASPECT_RATIO)
+		});
+		return fetch(proxyUrl + '?' + params.toString())
 			.then(function(res) { return res.ok ? res.json() : Promise.reject(new Error('Request failed')); })
 			.then(function(data) { return data.html || null; })
 			.catch(function(err) { console.warn('oEmbed fetch failed:', err); return null; });
@@ -61,15 +64,11 @@
 		}
 
 		// Set initial height
-		setTimeout(updateHeight, 0);
+		updateHeight();
 
 		// Update on resize
-		if (window.ResizeObserver) {
-			var resizeObserver = new ResizeObserver(updateHeight);
-			resizeObserver.observe(wrapper);
-		} else {
-			window.addEventListener('resize', updateHeight);
-		}
+		var resizeObserver = new ResizeObserver(updateHeight);
+		resizeObserver.observe(wrapper);
 
 		// Ensure iframe is absolutely positioned and fills wrapper
 		iframe.style.position = 'absolute';
@@ -77,7 +76,6 @@
 		iframe.style.left = '0';
 		iframe.style.width = '100%';
 		iframe.style.height = '100%';
-		iframe.style.border = '0';
 
 		// Ensure container is full width
 		embedBlock.style.width = '100%';
@@ -106,39 +104,33 @@
 
 		// Fetch oEmbed at large size (will scale down with CSS)
 		fetchOEmbed(url, FETCH_SIZE).then(function(html) {
-			if (!html) {
-				embedBlock.setAttribute('data-embed-processed', 'true');
-				return;
-			}
+			if (html) {
+				// Replace iframe with fetched version
+				var temp = document.createElement('div');
+				temp.innerHTML = html;
+				var newIframe = temp.querySelector('iframe');
+				if (newIframe) {
+					// Ensure wrapper exists
+					var wrapper = embedBlock.querySelector('.wp-block-embed__wrapper');
+					if (!wrapper) {
+						wrapper = document.createElement('div');
+						wrapper.className = 'wp-block-embed__wrapper';
+						embedBlock.insertBefore(wrapper, iframe);
+					}
 
-			// Replace iframe with fetched version
-			var temp = document.createElement('div');
-			temp.innerHTML = html;
-			var newIframe = temp.querySelector('iframe');
-			if (newIframe) {
-				var wrapper = embedBlock.querySelector('.wp-block-embed__wrapper');
-				if (!wrapper) {
-					wrapper = document.createElement('div');
-					wrapper.className = 'wp-block-embed__wrapper';
-					embedBlock.insertBefore(wrapper, iframe);
-				}
-
-				// Replace old iframe
-				if (iframe.parentNode === wrapper) {
-					wrapper.replaceChild(newIframe, iframe);
-				} else {
+					// Replace old iframe with new one
 					wrapper.innerHTML = '';
 					wrapper.appendChild(newIframe);
+
+					// Remove fixed dimensions and ensure full width
+					makeResponsive(newIframe, wrapper, embedBlock);
+
+					// Add responsive classes - WordPress CSS uses these for aspect ratio
+					// wp-embed-responsive: enables responsive behavior
+					// wp-has-aspect-ratio: enables :before padding-top trick
+					// wp-embed-aspect-16-9: sets padding-top to 56.25% (16:9 ratio)
+					embedBlock.classList.add('wp-embed-responsive', 'wp-has-aspect-ratio', 'wp-embed-aspect-16-9');
 				}
-
-				// Remove fixed dimensions and ensure full width
-				makeResponsive(newIframe, wrapper, embedBlock);
-
-				// Add responsive classes - WordPress CSS uses these for aspect ratio
-				// wp-embed-responsive: enables responsive behavior
-				// wp-has-aspect-ratio: enables :before padding-top trick
-				// wp-embed-aspect-16-9: sets padding-top to 56.25% (16:9 ratio)
-				embedBlock.classList.add('wp-embed-responsive', 'wp-has-aspect-ratio', 'wp-embed-aspect-16-9');
 			}
 
 			embedBlock.setAttribute('data-embed-processed', 'true');
@@ -153,21 +145,6 @@
 			.forEach(processEmbed);
 	}
 
-	/**
-	 * Handle resize - no need to re-fetch, CSS handles scaling
-	 */
-	function handleResize() {
-		// CSS handles responsive scaling, no action needed
-	}
-
-	/**
-	 * Initialize
-	 */
-	function init() {
-		document.addEventListener('DOMContentLoaded', processAll);
-		window.addEventListener('resize', handleResize);
-	}
-
-	init();
+	document.addEventListener('DOMContentLoaded', processAll);
 
 })();

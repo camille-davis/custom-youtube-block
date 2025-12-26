@@ -93,7 +93,7 @@ class Fullsize_YouTube_Embeds {
 	public function render_embed_block( $block_content, $block ) {
 
 		// Only process YouTube embeds with fullsize enabled
-		if ( ! isset( $block['attrs'] ) || empty( $block['attrs']['fullsize'] ) || ! $this->is_youtube_embed( $block['attrs'] ) ) {
+		if ( ! isset( $block['attrs'] ) || ! isset( $block['attrs']['fullsize'] ) || ! $block['attrs']['fullsize'] || ! $this->is_youtube_embed( $block['attrs'] ) ) {
 			return $block_content;
 		}
 
@@ -260,7 +260,7 @@ class Fullsize_YouTube_Embeds {
 	private function check_blocks_for_fullsize_youtube( $blocks ) {
 		foreach ( $blocks as $block ) {
 			if ( isset( $block['blockName'] ) && 'core/embed' === $block['blockName']
-				&& isset( $block['attrs']['fullsize'] ) && ! empty( $block['attrs']['fullsize'] )
+				&& isset( $block['attrs']['fullsize'] ) && $block['attrs']['fullsize']
 				&& $this->is_youtube_embed( $block['attrs'] ) ) {
 				return true;
 			}
