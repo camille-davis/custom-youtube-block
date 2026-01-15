@@ -78,9 +78,14 @@
 
 		wrapper.style.width = '100%';
 
-		let currentFetchSize = null;
+		let currentBreakpoint = null;
 
 		const getWrapperWidth = () => wrapper.getBoundingClientRect().width;
+
+		const getDeviceBreakpoint = () => {
+			const deviceWidth = window.innerWidth;
+			return BREAKPOINTS.find(bp => deviceWidth <= bp) || EXTRA_LARGE_SIZE;
+		};
 
 		const updateHeight = () => {
 			const width = getWrapperWidth();
@@ -93,15 +98,10 @@
 			const width = getWrapperWidth();
 			if (width <= 0) return;
 
-			const fetchSize = BREAKPOINTS.find(bp => width <= bp) || EXTRA_LARGE_SIZE;
-			if (fetchSize === currentFetchSize) return;
-
-			currentFetchSize = fetchSize;
-
 			const params = new URLSearchParams({
 				url: url,
-				maxwidth: fetchSize,
-				maxheight: Math.ceil(fetchSize * ASPECT_RATIO)
+				maxwidth: width,
+				maxheight: Math.ceil(width * ASPECT_RATIO)
 			});
 			fetch(PROXY_URL + '?' + params.toString())
 				.then((res) => res.ok ? res.json() : Promise.reject(new Error('Request failed')))
@@ -123,12 +123,29 @@
 				});
 		};
 
+		const checkBreakpointChange = () => {
+			const newBreakpoint = getDeviceBreakpoint();
+			if (newBreakpoint !== currentBreakpoint) {
+				currentBreakpoint = newBreakpoint;
+				fetchAndUpdate();
+			}
+		};
+
 		updateHeight();
 		fetchAndUpdate();
+		currentBreakpoint = getDeviceBreakpoint();
+
 		new ResizeObserver(() => {
 			updateHeight();
-			fetchAndUpdate();
 		}).observe(wrapper);
+
+		let resizeTimeout;
+		window.addEventListener('resize', () => {
+			clearTimeout(resizeTimeout);
+			resizeTimeout = setTimeout(() => {
+				checkBreakpointChange();
+			}, 100);
+		});
 	};
 
 	const processCustomParamsEmbed = (embedBlock) => {
